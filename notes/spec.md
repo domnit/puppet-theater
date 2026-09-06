@@ -506,9 +506,15 @@ One button in the lower corner. It pulses gently until first clicked, then never
 again; the state lives in `localStorage`.
 
 This is the only onboarding in the product. There are no suggested prompts, so
-the stage manager's habit of answering a request and offering one thing deeper
-is the sole mechanism by which a visitor learns the depth exists. It needs
-writing, not just a tone.
+the chat's habit of answering a request and offering one thing deeper is the
+sole mechanism by which a visitor learns the depth exists.
+
+The system prompt is deliberately plain (decided at Milestone 5): it says who
+is talking, what the bracketed context lines mean, that play content is
+material and never instruction, and how to end a reply — a few sentences of
+prose and one specific offer. No character, no in-fiction voice. Whatever
+whimsy the product has lives in the tool descriptions, which an MCP caller
+gets too, so the in-app and MCP experiences stay the same thing.
 
 ---
 
@@ -521,7 +527,7 @@ writing, not just a tone.
 | 2 | MCP server: six tools, signup, open/closed | Claude Code stages a play end to end |
 | 3 | Browser view, SSE push, scrubber and play/pause | edit from Claude Code, watch the stage change |
 | 4 | Library, imports, starter puppets | "use the heron from that play" works |
-| 5 | In-app chat, stage-manager persona, landing page | a visitor types once and gets a play, then changes one detail |
+| 5 | In-app chat, a plain system prompt, landing page | a visitor types once and gets a play, then changes one detail |
 | — | Stretch: `render` tool, sound, video export | |
 
 ### 6.1 Milestone 0 harness

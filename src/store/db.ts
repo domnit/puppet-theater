@@ -66,6 +66,27 @@ export interface Conflict {
   scope: string[];
 }
 
+/** One model call by the in-app chat, as the API reported it (spec §4.5). */
+export interface SpendEntry {
+  session: string;
+  model: string;
+  inputTokens: number;
+  cacheWriteTokens: number;
+  cacheReadTokens: number;
+  outputTokens: number;
+  /** What this call cost, in US dollars, by the rate table the chat holds. */
+  usd: number;
+}
+
+export interface SpendTotal {
+  usd: number;
+  calls: number;
+  inputTokens: number;
+  cacheWriteTokens: number;
+  cacheReadTokens: number;
+  outputTokens: number;
+}
+
 /** A dynamically registered MCP client. `metadata` is the RFC 7591 document as given. */
 export interface OAuthClient {
   id: string;
@@ -130,6 +151,14 @@ export interface Store {
   setFeatured(id: string, featured: boolean): void;
   listPlays(args?: { query?: string; creator?: string; featured?: boolean; limit?: number }): PlayRow[];
   onCommit(cb: (e: CommitEvent) => void): () => void;
+
+  // The chat's ledger and its kill switch (spec §4.5). `spendSince` sums every
+  // call recorded at or after `sinceMs`; `settings` is a tiny key/value table
+  // for the few knobs that must survive a restart and be flipped without one.
+  recordSpend(entry: SpendEntry): void;
+  spendSince(sinceMs: number): SpendTotal;
+  getSetting(key: string): string | null;
+  setSetting(key: string, value: string): void;
 
   // OAuth (spec §4.1): clients that registered themselves, five-minute
   // authorization codes, bearer tokens, and the browser sessions behind the
@@ -335,6 +364,22 @@ export function openStore(path?: string): Store {
       user_id TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS spend (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      at INTEGER NOT NULL,
+      session TEXT NOT NULL,
+      model TEXT NOT NULL,
+      input_tokens INTEGER NOT NULL,
+      cache_write_tokens INTEGER NOT NULL,
+      cache_read_tokens INTEGER NOT NULL,
+      output_tokens INTEGER NOT NULL,
+      usd REAL NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS spend_at ON spend(at);
+    CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
   `);
   db.query(
     "INSERT OR IGNORE INTO users (id, name, secret_hash, role, created_at) VALUES ('public', 'public', NULL, 'public', ?)",
@@ -389,6 +434,14 @@ export function openStore(path?: string): Store {
     "SELECT u.*, s.expires_at AS expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?",
   );
   const deleteSessionByHash = db.query("DELETE FROM sessions WHERE id_hash = ?");
+  const insertSpend = db.query(
+    "INSERT INTO spend (at, session, model, input_tokens, cache_write_tokens, cache_read_tokens, output_tokens, usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+  );
+  const sumSpend = db.query(
+    "SELECT COALESCE(SUM(usd), 0) AS usd, COUNT(*) AS calls, COALESCE(SUM(input_tokens), 0) AS input_tokens, COALESCE(SUM(cache_write_tokens), 0) AS cache_write_tokens, COALESCE(SUM(cache_read_tokens), 0) AS cache_read_tokens, COALESCE(SUM(output_tokens), 0) AS output_tokens FROM spend WHERE at >= ?",
+  );
+  const selectSetting = db.query("SELECT value FROM settings WHERE key = ?");
+  const upsertSetting = db.query("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value");
   const sweep = db.transaction((now: number) => {
     db.query("DELETE FROM oauth_codes WHERE expires_at < ?").run(now);
     db.query("DELETE FROM oauth_tokens WHERE expires_at < ?").run(now);
@@ -548,6 +601,38 @@ export function openStore(path?: string): Store {
     onCommit(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
+    },
+
+    recordSpend(e) {
+      insertSpend.run(Date.now(), e.session, e.model, e.inputTokens, e.cacheWriteTokens, e.cacheReadTokens, e.outputTokens, e.usd);
+    },
+
+    spendSince(sinceMs) {
+      const r = sumSpend.get(sinceMs) as {
+        usd: number;
+        calls: number;
+        input_tokens: number;
+        cache_write_tokens: number;
+        cache_read_tokens: number;
+        output_tokens: number;
+      };
+      return {
+        usd: r.usd,
+        calls: r.calls,
+        inputTokens: r.input_tokens,
+        cacheWriteTokens: r.cache_write_tokens,
+        cacheReadTokens: r.cache_read_tokens,
+        outputTokens: r.output_tokens,
+      };
+    },
+
+    getSetting(key) {
+      const row = selectSetting.get(key) as { value: string } | null;
+      return row ? row.value : null;
+    },
+
+    setSetting(key, value) {
+      upsertSetting.run(key, value);
     },
 
     registerClient({ id, secret, metadata }) {

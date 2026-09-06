@@ -13,6 +13,8 @@
   <div id="bill">
     <h1 id="title"></h1>
     <p id="notice" hidden></p>
+    <!-- Landing only, and only until the visitor's own play takes over. -->
+    <p id="byline" hidden></p>
   </div>
 
   <div id="controls">
@@ -29,7 +31,22 @@
     </div>
   </div>
 
-  <!-- The lower-right corner stays empty: the chat button lands there (spec §5.6). -->
+  <!-- The lower-right corner: one button, and the chat above it. -->
+  <button id="chat-open" type="button" aria-label="Open the chat"
+          aria-expanded="false" aria-controls="chat">Ask</button>
+
+  <section id="chat" role="dialog" aria-label="Chat" hidden>
+    <p id="chat-head">Ask for a play</p>
+    <div id="chat-log" role="log" aria-live="polite">
+      <p class="empty">Say what should be on stage, or point at a puppet and say what should change.</p>
+    </div>
+    <form id="chat-form">
+      <label class="vh" for="chat-input">Your message</label>
+      <textarea id="chat-input" rows="1" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
+      <button class="vh" type="submit">Send</button>
+    </form>
+  </section>
+
   <script type="module" src="/viewer.js"></script>
 </body>
 </html>

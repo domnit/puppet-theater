@@ -87,12 +87,13 @@ PUPPET_DEV=1 bun run serve    # rebuild the viewer bundle when src/ changes
 | `PUPPET_ADMIN_SECRET` | — | seeds the `author` account (role `admin`) with this secret |
 | `PUPPET_DEV` | — | `1`: readable bundle, rebuilt on change |
 
-Routes: `GET /` (a placeholder index of plays), `POST|DELETE /mcp`, the OAuth
-set (`GET /.well-known/oauth-authorization-server`,
+Routes: `GET /` (the landing page), `GET /plays` (a plain index of plays),
+`POST /chat`, `POST|DELETE /mcp`, the OAuth set
+(`GET /.well-known/oauth-authorization-server`,
 `GET /.well-known/oauth-protected-resource[/mcp]`, `POST /register`,
 `GET|POST /authorize`, `POST /token`), `GET /p/:id` and `GET /p/:id/events` (SSE),
-`GET /api/plays`, `GET /api/plays/:id`, `GET /api/plays/:id/versions`,
-`POST /admin/featured`.
+`GET /api/landing`, `GET /api/plays`, `GET /api/plays/:id`,
+`GET /api/plays/:id/versions`, `POST /admin/featured`, `POST /admin/chat`.
 
 ### Connecting
 
@@ -208,4 +209,63 @@ part subtree is rescaled by the ratio of the two puppets' `unit`.
 
 ```bash
 PUPPET_ADMIN_SECRET=… bun scripts/seed.ts   # fixture plays as closed demo plays, plus an open play built by importing lib.heron
+```
+
+## Milestone 5 — the in-app chat and the landing page
+
+`GET /` is the stage: one play picked at random from the `featured` set, played
+once, read-only — no SSE and no model call on the way in. If nothing is
+featured it shows the empty lit scrim. The old index of plays moved to `/plays`.
+The plays are featured with `POST /admin/featured` (Basic auth, the seeded
+admin), and `bun scripts/seed.ts` features the showcase.
+
+One button in the lower-right corner opens the chat. It pulses until first
+clicked and never again (`localStorage`). A visitor types once and the stage
+assembles: `POST /chat` runs the Anthropic SDK's tool runner in process over
+the same `TOOLS` the MCP server registers (spec §4.6 — nothing exists in one
+client and not the other), acting as `public`, so it can only make and edit
+open plays. The reply streams as prose; the edits reach the page over the
+play's own `/p/:id/events` feed, the same as they would for any other viewer.
+When the chat creates a play, the page switches to it and the URL becomes
+`/p/:id`, so the visitor can share what they made. Clicking a part on stage
+prefixes the input with `[puppet / part]`, which the model reads as pointing.
+
+The system prompt (`src/server/prompt.ts`) is short and plain on purpose: it
+says who is talking and how to end a reply (with one specific thing that could
+change next — the only onboarding there is), and nothing else. The domain and
+whatever whimsy there is live in the tool descriptions, which an MCP caller
+gets too. Play content — titles, labels, notes — is named as material and never
+instruction, since anyone can write it.
+
+### The chat's wire protocol
+
+`POST /chat` with `{ session?, message, play_id?, landing? }` answers
+`text/event-stream` in every case but a malformed request: `session {id}` first,
+then `text {delta}` frames, `play {play_id}` when the page should show a play
+the turn created, and `done {}` — or `dark {text}`, a written failure state in
+place of an error. The session lives in server memory (two hours idle).
+
+### Spend
+
+| Env | Default | What |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | — | unset: the chat is dark |
+| `PUPPET_CHAT_MODEL` | `claude-sonnet-5` | adaptive thinking, low effort, one cache breakpoint after the system prompt |
+| `PUPPET_CHAT_DAILY_USD` | `5` | daily ceiling, from a rate table in `src/server/spend.ts` fed by each response's `usage` |
+| `PUPPET_CHAT_PER_IP` | `30` | messages an hour per address |
+| `PUPPET_CHAT_PER_SESSION` | `40` | messages per session |
+| `PUPPET_CHAT_MAX_STEPS` | `30` | model calls per turn — the cap that matters, since a loop spends without anyone typing |
+
+Every call is a row in the `spend` table. `POST /admin/chat` with
+`{"enabled": false}` is the kill switch (a `settings` row, so it survives a
+restart) and answers with today's totals. Every ceiling renders the same
+sentence in the chat rather than an error. The outermost layer is not code: a
+Console workspace with a monthly limit holding the key.
+
+```
+src/server/chat.ts     POST /chat: sessions, caps, the tool runner over TOOLS, the SSE reply
+src/server/spend.ts    the rate table, cost per call, start of the UTC day
+src/server/prompt.ts   the system prompt
+src/viewer/chat.ts     the button, the panel, the stream reader, click-a-part
+test/chat.test.ts      the loop end to end against a scripted fake of the Messages API
 ```

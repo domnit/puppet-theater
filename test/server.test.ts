@@ -34,7 +34,8 @@ function bearer(): string {
 
 beforeAll(() => {
   store = openStore(":memory:");
-  running = startServer({ store, port: 0 });
+  // The chat never spends in tests: no key, whatever the developer's env holds.
+  running = startServer({ store, port: 0, chat: { apiKey: null } });
   base = running.url;
   creds = store.createUser({ name: "tester", role: "user" });
   token = "test-access-token";
@@ -60,10 +61,66 @@ describe("read routes", () => {
     expect((await fetch(`${base}/api/plays/pl_nope`)).status).toBe(404);
   });
 
-  test("the index lists the play and links to its stage", async () => {
-    const html = await (await fetch(base)).text();
+  test("/plays lists the play and links to its stage", async () => {
+    const html = await (await fetch(`${base}/plays`)).text();
     expect(html).toContain(`/p/${playId}`);
     expect(html).toContain("The Lamp");
+  });
+
+  test("GET / is the viewer page, and /api/landing picks from the featured set", async () => {
+    const html = await (await fetch(base)).text();
+    expect(html).toContain("/viewer.js");
+
+    expect((await fetch(`${base}/api/landing`)).status).toBe(404);
+    store.setFeatured(playId, true);
+    const res = await fetch(`${base}/api/landing`);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { play_id: string; play: { title: string }; version: number };
+    expect(body.play_id).toBe(playId);
+    expect(body.play.title).toBe("The Lamp");
+    expect(body.version).toBe(1);
+    store.setFeatured(playId, false);
+  });
+});
+
+describe("chat", () => {
+  test("POST /chat with no key opens a session and says the theatre is dark", async () => {
+    const res = await fetch(`${base}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "a fox", play_id: playId }),
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    const text = await res.text();
+    expect(text).toMatch(/^event: session\n/);
+    expect(text).toContain("event: dark");
+    expect(text).toContain("The theatre is dark tonight.");
+  });
+
+  test("/admin/chat is the kill switch and needs the admin", async () => {
+    const admin = store.createUser({ id: "author", name: "author", role: "admin" });
+    const auth = `Basic ${Buffer.from(`author:${admin.secret}`).toString("base64")}`;
+    expect((await fetch(`${base}/admin/chat`, { method: "POST", body: "{}" })).status).toBe(401);
+
+    const off = await fetch(`${base}/admin/chat`, {
+      method: "POST",
+      headers: { Authorization: auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: false }),
+    });
+    expect(off.status).toBe(200);
+    expect(store.getSetting("chat")).toBe("off");
+    const body = (await off.json()) as { enabled: boolean; today: { usd: number; calls: number } };
+    expect(body.enabled).toBe(false);
+    expect(body.today.calls).toBe(0);
+
+    const on = await fetch(`${base}/admin/chat`, {
+      method: "POST",
+      headers: { Authorization: auth, "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true }),
+    });
+    expect(((await on.json()) as { enabled: boolean }).enabled).toBe(true);
+    expect(store.getSetting("chat")).toBe("on");
   });
 });
 

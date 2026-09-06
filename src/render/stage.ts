@@ -55,7 +55,7 @@ export class Stage {
       ${stageBackdrop()}
       <g class="cast"></g>
       ${stageForeground(1)}
-      <g class="overlay"></g>`;
+      <g class="overlay" pointer-events="none"></g>`;
     this.cast = this.svg.querySelector("g.cast")!;
     this.dim = this.svg.querySelector("rect.dim")!;
     this.overlay = this.svg.querySelector("g.overlay")!;

@@ -1,12 +1,15 @@
-// The product server: the viewer page and its change feed, a small read API,
-// the MCP endpoint and the OAuth endpoints that guard it, and a temporary
-// index. `bun run serve`.
+// The product server: the landing page and the viewer page with its change
+// feed, the in-app chat, a small read API, the MCP endpoint and the OAuth
+// endpoints that guard it, and a plain index of plays. `bun run serve`.
 //
 // Env: PORT (4300), PUPPET_DB (data/theater.sqlite), PUPPET_BASE_URL (the
 // origin play URLs are built from and the OAuth issuer; defaults to the
 // request's own origin, so set it behind a proxy), PUPPET_ADMIN_SECRET (seeds
 // the `author` admin account), PUPPET_DEV=1 (rebuild the viewer bundle when
-// src/ changes).
+// src/ changes). The chat (spec §4.5): ANTHROPIC_API_KEY (unset: the chat is
+// dark), PUPPET_CHAT_MODEL (claude-sonnet-5), PUPPET_CHAT_DAILY_USD (5),
+// PUPPET_CHAT_PER_IP (30 messages an hour), PUPPET_CHAT_PER_SESSION (40),
+// PUPPET_CHAT_MAX_STEPS (30 model calls a turn).
 
 import { createImportResolver, libraryIndex, type ImportSources } from "../doc/library";
 import { loadLibrary } from "../library";
@@ -15,10 +18,12 @@ import { list_plays, ToolError, type Principal, type ToolContext } from "../tool
 import { devAssets, viewerPage, viewerScript, viewerStyle } from "./assets";
 import { basicAuth, bearerAuth, PUBLIC, unauthorized, unauthorizedBasic } from "./auth";
 import { createAuthorize } from "./authorize";
+import { createChat, KILL_SWITCH_KEY, type ChatOptions } from "./chat";
 import { esc, page } from "./html";
 import { createLimiter } from "./limit";
 import { handleMcp } from "./mcp";
 import * as oauth from "./oauth";
+import { startOfDayUtc } from "./spend";
 import { createHub } from "./sse";
 
 export interface ServerOptions {
@@ -28,6 +33,8 @@ export interface ServerOptions {
   /** Origin for play URLs; the request's own origin when absent. */
   baseUrl?: string;
   dev?: boolean;
+  /** The chat's knobs; anything omitted comes from env, then the defaults above. */
+  chat?: Partial<Omit<ChatOptions, "store" | "context">>;
 }
 
 export interface RunningServer {
@@ -60,6 +67,16 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
     libraryIndex: library,
   });
 
+  // The chat acts as `public` and its play URLs are built from the configured
+  // origin, or the server's own once it is listening.
+  let ownUrl = opts.baseUrl ?? "";
+  const chat = createChat({
+    store,
+    context: () => ({ store, principal: PUBLIC, baseUrl: ownUrl, imports, libraryIndex: library }),
+    ...chatOptionsFromEnv(),
+    ...opts.chat,
+  });
+
   const server = Bun.serve({
     port: opts.port ?? 4300,
     // Bun drops idle connections after 10 s by default; SSE must outlive that.
@@ -69,7 +86,10 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
       const path = url.pathname;
       const base = opts.baseUrl ?? url.origin;
       try {
-        if (path === "/" && req.method === "GET") return index(store, base);
+        if (path === "/" && req.method === "GET") return viewerPage();
+        if (path === "/plays" && req.method === "GET") return index(store, base);
+        if (path === "/chat" && req.method === "POST") return chat.handle(req, clientIp(req, self));
+        if (path === "/api/landing" && req.method === "GET") return landing(store);
 
         // OAuth: discovery, registration, the authorize page, tokens.
         if (req.method === "OPTIONS" && (path.startsWith("/.well-known/") || path === "/register" || path === "/token")) {
@@ -94,6 +114,7 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
           return handleMcp(req, context(req, principal));
         }
         if (path === "/admin/featured" && req.method === "POST") return featured(req, store);
+        if (path === "/admin/chat" && req.method === "POST") return chatSwitch(req, store);
         if (path === "/viewer.js" && req.method === "GET") return viewerScript();
         if (path === "/viewer.css" && req.method === "GET") return viewerStyle();
 
@@ -126,16 +147,34 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
     },
   });
 
+  ownUrl ||= `http://localhost:${server.port}`;
+
   return {
     server,
     store,
-    url: opts.baseUrl ?? `http://localhost:${server.port}`,
+    url: ownUrl,
     stop() {
       unwatch?.();
+      chat.close();
       hub.close();
       server.stop(true);
       if (!opts.store) store.close();
     },
+  };
+}
+
+function chatOptionsFromEnv(): Omit<ChatOptions, "store" | "context"> {
+  const num = (name: string, fallback: number) => {
+    const v = Number(process.env[name]);
+    return Number.isFinite(v) && process.env[name] !== undefined ? v : fallback;
+  };
+  return {
+    apiKey: process.env.ANTHROPIC_API_KEY || null,
+    model: process.env.PUPPET_CHAT_MODEL || "claude-sonnet-5",
+    dailyUsd: num("PUPPET_CHAT_DAILY_USD", 5),
+    perIpPerHour: num("PUPPET_CHAT_PER_IP", 30),
+    perSession: num("PUPPET_CHAT_PER_SESSION", 40),
+    maxIterations: num("PUPPET_CHAT_MAX_STEPS", 30),
   };
 }
 
@@ -167,7 +206,39 @@ async function featured(req: Request, store: Store): Promise<Response> {
   return Response.json({ play_id: body.play_id, featured: body.featured !== false });
 }
 
-/** Temporary: the real landing page (a featured play, played read-only) is Milestone 5. */
+/** The kill switch (spec §4.5): `{"enabled": false}` darkens the chat until turned back on. */
+async function chatSwitch(req: Request, store: Store): Promise<Response> {
+  const principal = basicAuth(req, store);
+  if (!principal) return unauthorizedBasic();
+  if (principal.role !== "admin") return text("admin only", 403);
+  const body = (await req.json()) as { enabled?: boolean };
+  const enabled = body.enabled !== false;
+  store.setSetting(KILL_SWITCH_KEY, enabled ? "on" : "off");
+  return Response.json({ enabled, today: store.spendSince(startOfDayUtc()) });
+}
+
+/**
+ * The landing page's pick (spec §4.4): one play at random from the featured
+ * set, in the shape of /api/plays/:id plus its id. 404 when nothing is
+ * featured, and the page shows the empty scrim.
+ */
+function landing(store: Store): Response {
+  const rows = store.listPlays({ featured: true, limit: 100 });
+  if (rows.length === 0) return text("nothing featured", 404);
+  const pick = rows[Math.floor(Math.random() * rows.length)];
+  const got = store.getPlay(pick.id);
+  if (!got) return text("nothing featured", 404);
+  return Response.json({
+    play_id: pick.id,
+    play: got.doc,
+    version: got.version,
+    mode: got.row.mode,
+    creator: got.row.creator,
+    title: got.row.title,
+  });
+}
+
+/** A plain list of every play, for finding one; the landing page is the stage itself. */
 function index(store: Store, base: string): Response {
   const rows = store.listPlays({ limit: 100 });
   const items = rows
@@ -180,8 +251,7 @@ function index(store: Store, base: string): Response {
   return page(
     "puppet-theater",
     `<h1>puppet-theater</h1>
-<p class="sub">A shadow-puppet stage that agents write to. This list is a placeholder — the
-landing page proper comes later.</p>
+<p class="sub">Every play on this stage, newest change first. Every one is public.</p>
 ${rows.length ? `<ul>${items}</ul>` : "<p>Nothing staged yet.</p>"}
 <footer>MCP: <code>${esc(oauth.resourceUrl(base))}</code> — give that to your client. It will
 bring you back here to sign in.</footer>`,

@@ -1,5 +1,6 @@
 // Unit tests for the SQLite store: create/commit round-trips, the per-scope
-// stale-commit rule, listing filters, and users. All on `:memory:` stores.
+// stale-commit rule, listing filters, users, and the chat ledger. All on
+// `:memory:` stores.
 
 import { describe, expect, test } from "bun:test";
 import { openStore, StaleError, type Store } from "../src/store/db";
@@ -201,5 +202,32 @@ describe("users", () => {
     expect(store.countUsers()).toBe(0);
     store.createUser({ role: "user" });
     expect(store.countUsers()).toBe(1);
+  });
+});
+
+describe("spend and settings", () => {
+  test("recordSpend sums into spendSince, and a later cutoff excludes earlier rows", () => {
+    const store = fresh();
+    expect(store.spendSince(0)).toEqual({ usd: 0, calls: 0, inputTokens: 0, cacheWriteTokens: 0, cacheReadTokens: 0, outputTokens: 0 });
+    const entry = { session: "s1", model: "claude-sonnet-5", inputTokens: 100, cacheWriteTokens: 50, cacheReadTokens: 25, outputTokens: 10, usd: 0.001 };
+    store.recordSpend(entry);
+    store.recordSpend({ ...entry, session: "s2", usd: 0.002 });
+    const total = store.spendSince(0);
+    expect(total.calls).toBe(2);
+    expect(total.usd).toBeCloseTo(0.003, 9);
+    expect(total.inputTokens).toBe(200);
+    expect(total.cacheWriteTokens).toBe(100);
+    expect(total.cacheReadTokens).toBe(50);
+    expect(total.outputTokens).toBe(20);
+    expect(store.spendSince(Date.now() + 60_000).calls).toBe(0);
+  });
+
+  test("settings are absent until set, and setSetting overwrites", () => {
+    const store = fresh();
+    expect(store.getSetting("chat")).toBeNull();
+    store.setSetting("chat", "off");
+    expect(store.getSetting("chat")).toBe("off");
+    store.setSetting("chat", "on");
+    expect(store.getSetting("chat")).toBe("on");
   });
 });

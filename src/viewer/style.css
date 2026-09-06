@@ -9,6 +9,7 @@
   --hair: rgba(233, 217, 180, 0.20);
   --hair-lit: rgba(233, 217, 180, 0.48);
   --ochre: #d67828;
+  --panel: #1d130d;         /* the chat panel — flat, one step off the wall */
   --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
   --gutter: 26px;
 }
@@ -56,7 +57,6 @@ svg.stage {
   height: auto;
   max-height: 100vh;
 }
-
 #bill {
   position: fixed;
   z-index: 3;
@@ -75,17 +75,17 @@ svg.stage {
   /* An ink halo so the title holds against the lit scrim as well as the wall. */
   text-shadow: 0 1px 2px rgba(11, 7, 5, 0.6);
 }
-#notice {
+#notice, #byline {
   margin: 5px 0 0;
   font-size: 13px;
   font-style: italic;
   letter-spacing: 0.02em;
   color: rgba(233, 217, 180, 0.4);
 }
-#notice[hidden] { display: none; }
+#notice[hidden], #byline[hidden] { display: none; }
 
 /* Controls: out of the way until the pointer comes down to them. The right
-   88px stay clear for the Milestone 5 chat button. */
+   88px are the chat button's, so the track stops short of it. */
 #controls {
   position: fixed;
   z-index: 3;
@@ -142,3 +142,131 @@ svg.stage {
   border-radius: 50%;
   background: var(--ochre);
 }
+
+/* ---------- the chat (spec §5.6) ---------- */
+
+/* Labels that only a screen reader needs. */
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The one button, in the 88px the controls bar leaves clear. It is not a
+   playback control, so it does not fade with them. */
+#chat-open {
+  position: fixed;
+  z-index: 4;
+  right: var(--gutter);
+  bottom: 17px;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--hair);
+  background: none;
+  color: var(--bone-dim);
+  font-family: var(--serif);
+  font-size: 13px;
+  font-variant: small-caps;
+  letter-spacing: 0.13em;
+  text-shadow: 0 1px 2px rgba(11, 7, 5, 0.6);
+  cursor: pointer;
+}
+#chat-open:hover, #chat-open:focus-visible {
+  color: var(--bone);
+  border-bottom-color: var(--hair-lit);
+  outline: none;
+}
+/* Pulses until the first click, ever — the only onboarding in the product. */
+#chat-open.pulse { animation: chat-pulse 3.8s ease-in-out infinite; }
+@keyframes chat-pulse {
+  0%, 100% { color: var(--bone-dim); border-bottom-color: var(--hair); }
+  45%      { color: #f4e6c6; border-bottom-color: var(--ochre); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #chat-open.pulse { animation: none; color: var(--bone); border-bottom-color: var(--ochre); }
+}
+
+/* Anchored above the button and kept off the centre of the stage. */
+#chat {
+  position: fixed;
+  z-index: 4;
+  right: var(--gutter);
+  bottom: 56px;
+  width: min(22rem, calc(100vw - 2 * var(--gutter)));
+  max-height: 55vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--hair);
+  color: var(--bone);
+}
+#chat[hidden] { display: none; }
+
+#chat-head {
+  flex: none;
+  margin: 0;
+  padding: 9px 13px 8px;
+  border-bottom: 1px solid var(--hair);
+  font-size: 12px;
+  font-variant: small-caps;
+  letter-spacing: 0.13em;
+  color: var(--bone-dim);
+}
+
+#chat-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  /* A bright default scrollbar is the one bit of chrome the page cannot
+     restyle away, so it is dressed down to a hairline. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--hair) transparent;
+  padding: 11px 13px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+#chat-log p { margin: 0 0 10px; white-space: pre-wrap; }
+#chat-log p:last-child { margin-bottom: 0; }
+/* The visitor's line is marked the way a script marks speech; the stage
+   manager's answers sit at the margin. */
+#chat-log .you {
+  color: var(--bone-dim);
+  padding-left: 1.1em;
+  text-indent: -1.1em;
+}
+#chat-log .you::before { content: "— "; }
+#chat-log .them { color: var(--bone); }
+#chat-log .wait { color: rgba(233, 217, 180, 0.3); letter-spacing: 0.3em; }
+#chat-log .dark, #chat-log .empty { color: rgba(233, 217, 180, 0.42); font-style: italic; }
+
+#chat-form {
+  flex: none;
+  margin: 0;
+  padding: 9px 13px 10px;
+  border-top: 1px solid var(--hair);
+}
+#chat-input {
+  display: block;
+  width: 100%;
+  max-height: 96px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bone);
+  caret-color: var(--ochre);
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hair) transparent;
+}
+#chat-input:focus { outline: none; }
+#chat-input:disabled { color: var(--bone-dim); }

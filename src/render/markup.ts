@@ -37,15 +37,18 @@ export function stageDefs(): string {
 
 /** Lit scrim, weave and grain — everything behind the cast. */
 export function stageBackdrop(): string {
-  return `<rect class="scrim" width="${STAGE_W}" height="${STAGE_H}" fill="url(#lamp)"/>
-  <rect width="${STAGE_W}" height="${STAGE_H}" fill="url(#weave)" opacity="0.10"/>
-  <rect width="${STAGE_W}" height="${STAGE_H}" filter="url(#grain)" style="mix-blend-mode:multiply"/>`;
+  return `<rect class="scrim" width="${STAGE_W}" height="${STAGE_H}" fill="url(#lamp)" pointer-events="none"/>
+  <rect width="${STAGE_W}" height="${STAGE_H}" fill="url(#weave)" opacity="0.10" pointer-events="none"/>
+  <rect width="${STAGE_W}" height="${STAGE_H}" filter="url(#grain)" style="mix-blend-mode:multiply" pointer-events="none"/>`;
 }
 
-/** Lamp dimmer, vignette and proscenium — everything in front of the cast. */
+/**
+ * Lamp dimmer, vignette and proscenium — everything in front of the cast.
+ * None of it is hit-testable, so a click lands on a figure or on nothing.
+ */
 export function stageForeground(lamp: number): string {
   const dim = 1 - Math.max(0, Math.min(1, lamp));
-  return `<rect class="dim" width="${STAGE_W}" height="${STAGE_H}" fill="#0b0705" opacity="${dim.toFixed(3)}"/>
-  <rect width="${STAGE_W}" height="${STAGE_H}" fill="url(#vignette)"/>
-  <path class="proscenium" fill="#1b0f0b" fill-rule="evenodd" d="M0,0 H${STAGE_W} V${STAGE_H} H0 Z M36,58 Q${STAGE_W / 2},22 ${STAGE_W - 36},58 V${STAGE_H - 34} H36 Z"/>`;
+  return `<rect class="dim" width="${STAGE_W}" height="${STAGE_H}" fill="#0b0705" opacity="${dim.toFixed(3)}" pointer-events="none"/>
+  <rect width="${STAGE_W}" height="${STAGE_H}" fill="url(#vignette)" pointer-events="none"/>
+  <path class="proscenium" fill="#1b0f0b" fill-rule="evenodd" pointer-events="none" d="M0,0 H${STAGE_W} V${STAGE_H} H0 Z M36,58 Q${STAGE_W / 2},22 ${STAGE_W - 36},58 V${STAGE_H - 34} H36 Z"/>`;
 }
