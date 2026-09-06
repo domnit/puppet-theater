@@ -71,3 +71,122 @@ test/                  unit tests for the pure core; an invariant sweep over the
   stage, directly under where its attachment sits at rest, so it stands vertical
   at rest and tilts as the hand moves. Rods are drawn a little softer and
   lighter than the figure, since they are held behind it.
+
+## Milestones 1–2 — store, selectors, edits, tools, MCP
+
+```bash
+bun run serve      # theater at http://localhost:4300
+PUPPER_DEV=1 bun run serve    # rebuild the viewer bundle when src/ changes
+```
+
+| Env | Default | What |
+|---|---|---|
+| `PORT` | `4300` | listen port |
+| `PUPPER_DB` | `data/theater.sqlite` | SQLite file; `:memory:` in tests |
+| `PUPPER_BASE_URL` | the request's own origin | origin the play URLs are built from |
+| `PUPPER_ADMIN_SECRET` | — | seeds the `author` account (role `admin`) with this secret |
+| `PUPPER_DEV` | — | `1`: readable bundle, rebuilt on change |
+
+Routes: `GET /` (a placeholder index of plays), `GET /signup` and `POST /signup`,
+`POST|DELETE /mcp`, `GET /p/:id` and `GET /p/:id/events` (SSE), `GET /api/plays`,
+`GET /api/plays/:id`, `GET /api/plays/:id/versions`, `POST /admin/featured`.
+
+### Credentials
+
+`/signup` mints an id and a secret — no email, 5 an hour per address, 500 accounts
+in all — and shows them once, with the line to paste:
+
+```bash
+claude mcp add --transport http pupper-theater http://localhost:4300/mcp \
+  --header "Authorization: Basic $(printf '%s' 'ID:SECRET' | base64)"
+```
+
+Every request to `/mcp` carries that header; without it the server answers 401.
+The anonymous principal `public` (what the in-app chat will act as) never
+authenticates: it may create and edit open plays and nothing else.
+
+### The six tools
+
+`create_play`, `list_plays`, `read_play`, `edit_play`, `edit_scene`, `edit_cast` —
+spec §3.1, as plain functions over the store in `src/tools/index.ts` and
+registered from one `TOOLS` array, so the MCP server and the in-app chat cannot
+drift apart. An edit call is one atomic batch and one version: nothing commits
+unless every edit applies and the result validates, and the response names the
+index that failed. Pass `version` to have a batch refused rather than clobber a
+concurrent change to the same scope (`rejected: [{ index: -1, … }]`).
+
+Two rules live in this layer rather than in the document: `mode` is a column on
+the play row, so `set mode` is pulled out of an `edit_play` batch, allowed only
+for the creator, and applied without writing a version; and a contour and its
+note are written together, so an `edit_cast` batch that writes a part's `path`
+must write that part's `note` too (mirrored parts are exempt; a new puppet needs
+its own note).
+
+Selectors are rewritten play-absolute before a batch is stored, so the version
+history and the SSE feed carry no hidden scope.
+
+### Layout
+
+```
+src/doc/selector.ts    selector grammar: parse, format, scope prefixing, navigation
+src/doc/edit.ts        the five edits, applied to a doc; applyAndValidate
+src/doc/validate.ts    spec §2.3 checks, normalisation, bounds
+src/doc/read.ts        the read_play projection: depths, derived geometry, warnings
+src/doc/library.ts     import sources: lib.*, pl_x/cast/y; rescale and provenance
+src/library/index.ts   loads library/puppets/*.json and library/parts/*.json
+src/store/db.ts        SQLite: users, plays, append-only versions, commit events
+src/tools/index.ts     the six tools and the TOOLS registry
+src/tools/descriptions.ts  each tool's description — the model's only manual
+src/server/index.ts    Bun.serve: routes, tool context, admin seeding
+src/server/mcp.ts      stateless streamable-HTTP MCP over TOOLS
+src/server/sse.ts      /p/:id/events: one store subscription, fanned out per play
+src/server/signup.ts   credential minting, rate limited
+src/server/assets.ts   viewer page, bundle and stylesheet
+src/server/html.ts     the plain pages the server renders itself
+```
+
+## Milestone 3 — the browser view
+
+`/p/:id` is the stage. It fetches the play, autoplays it once, and holds on the
+final frame; it does not loop. A hairline scrubber and a play/pause glyph fade
+in when the pointer is near the bottom edge (space toggles, ← → step a frame).
+A play with no scenes shows the lit, empty scrim with its title — the first
+thing anyone sees after `create_play`.
+
+The page then opens `/p/:id/events`. Each commit arrives as the batch of edits
+that made it, and the page applies them with the same `applyEdits` the server
+used: mid-playback the change takes effect from the current frame, paused it
+re-renders in place, and if playback had ended and the play grew it resumes
+into the new material. A batch containing an `import` arrives as the whole
+document instead (the browser has no library); a version gap triggers a
+refetch. Nothing in `src/viewer/` or `src/doc/` touches Bun or node APIs, which
+is what lets the server bundle the document code straight into the page.
+
+```
+src/viewer/index.html  the page: a title, the stage, the controls
+src/viewer/main.ts     fetch, resolve, play; the SSE feed; the controls
+src/viewer/style.css   warm neutrals, grain, one gradient (the lamp)
+```
+
+## Milestone 4 — library and imports
+
+`library/puppets/*.json` and `library/parts/*.json` are the curated starters,
+each with an integer `version`: puppets `fox`, `keeper`, `heron`; parts
+`lantern` and `hand_open`. `list_plays` returns the index, and `edit_cast`
+imports:
+
+```jsonc
+{ "op": "import", "src": "lib.heron", "as": "heron" }                 // a starter, latest version
+{ "op": "import", "src": "lib.heron@1" }                              // a pinned version
+{ "op": "import", "src": "pl_nvx27t/cast/heron", "as": "gull" }       // a puppet from any play
+{ "op": "import", "src": "lib.part.lantern",
+  "into": "keeper", "parent": "hand_near", "pivot": [0, 8] }          // a part subtree, rescaled by unit
+```
+
+Imports copy; nothing is referenced at render time. The copy's `from` records
+where it came from (`lib.heron@1`, `pl_nvx27t/cast/heron@2`), and an imported
+part subtree is rescaled by the ratio of the two puppets' `unit`.
+
+```bash
+PUPPER_ADMIN_SECRET=… bun scripts/seed.ts   # fixture plays as closed demo plays, plus an open play built by importing lib.heron
+```

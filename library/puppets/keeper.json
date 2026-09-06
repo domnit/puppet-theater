@@ -1,0 +1,114 @@
+{
+  "id": "keeper",
+  "version": 1,
+  "name": "The Keeper",
+  "note": "a lighthouse keeper in a heavy coat and flat cap — broad shoulders, slight stoop, boots. Root pivot is the base of the neck; the figure hangs from it like a rod puppet. Faces +X.",
+  "unit": 112,
+  "cap": 4,
+  "restPose": {
+    "head": 4,
+    "arm_far": 6,
+    "farm_far": -10,
+    "arm_near": -8,
+    "farm_near": -18,
+    "leg_far": 2,
+    "leg_near": -3,
+    "shin_near": 2
+  },
+  "look": {
+    "opacity": 1.0,
+    "idle": 1.0
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "parent": null,
+      "pivot": [0, 0],
+      "z": 0,
+      "note": "coat from the neck to the hips, chest forward, flared hem at y=34",
+      "path": "M -7,0 C -11,4 -13,14 -13,34 L 12,34 C 13,20 13,8 8,0 Z"
+    },
+    {
+      "id": "head",
+      "parent": "torso",
+      "pivot": [0, -1],
+      "z": 2,
+      "note": "neck, skull and a blunt nose forward; drawn upward from the neck base",
+      "path": "M -4,0 L -4,-5 C -8,-8 -9,-14 -8,-19 C -6,-25 3,-27 8,-23 C 11,-20 12,-16 11,-13 L 13,-10 L 10,-9 C 10,-6 8,-4 5,-4 L 4,0 Z"
+    },
+    {
+      "id": "cap_hat",
+      "parent": "head",
+      "pivot": [0, -22],
+      "z": 3,
+      "note": "flat cap with the peak forward",
+      "path": "M -9,1 C -9,-4 -2,-7 4,-6 C 9,-5 12,-2 15,0 L 14,1.6 L 9,1.2 C 5,2.5 -3,2.5 -9,1 Z"
+    },
+    {
+      "id": "arm_far",
+      "parent": "torso",
+      "pivot": [1, 4],
+      "z": -1,
+      "note": "upper arm, far side, hangs 20 down from the shoulder",
+      "path": "M -4,0 C -5,7 -4.5,14 -3.5,20 L 3.5,20 C 4.5,14 5,7 4,0 Z"
+    },
+    {
+      "id": "farm_far",
+      "parent": "arm_far",
+      "pivot": [0, 19],
+      "z": -1,
+      "rod": [0, 21],
+      "note": "forearm and a closed hand, far side",
+      "path": "M -3.5,0 C -4,6 -3.5,12 -3,17 C -4.5,19 -4,23 -1,25 C 2,26 4,23 3.5,20 L 3,17 C 3.5,12 4,6 3.5,0 Z"
+    },
+    {
+      "id": "arm_near",
+      "parent": "torso",
+      "pivot": [1, 4],
+      "z": 3,
+      "note": "upper arm, near side",
+      "path": "M -4,0 C -5,7 -4.5,14 -3.5,20 L 3.5,20 C 4.5,14 5,7 4,0 Z"
+    },
+    {
+      "id": "farm_near",
+      "parent": "arm_near",
+      "pivot": [0, 19],
+      "z": 3,
+      "rod": [0, 21],
+      "note": "forearm and hand, near side — the hand that carries things; its tip is at [0,25]",
+      "path": "M -3.5,0 C -4,6 -3.5,12 -3,17 C -4.5,19 -4,23 -1,25 C 2,26 4,23 3.5,20 L 3,17 C 3.5,12 4,6 3.5,0 Z"
+    },
+    {
+      "id": "leg_far",
+      "parent": "torso",
+      "pivot": [-4, 32],
+      "z": -1,
+      "note": "thigh, far side, 26 down from the hip",
+      "path": "M -5.5,0 C -7,8 -6,16 -4.5,26 L 4.5,26 C 6,16 6.5,8 5.5,0 Z"
+    },
+    {
+      "id": "shin_far",
+      "parent": "leg_far",
+      "pivot": [0, 25],
+      "z": -1,
+      "note": "shin and a boot pointing forward",
+      "path": "M -4.5,0 C -5,8 -4.5,15 -4,21 L -4.5,27 L 10,27 C 10,25 8,23.5 4.5,22 C 4.5,15 5,8 4.5,0 Z"
+    },
+    {
+      "id": "leg_near",
+      "parent": "torso",
+      "pivot": [4, 32],
+      "z": 1,
+      "note": "thigh, near side",
+      "path": "M -5.5,0 C -7,8 -6,16 -4.5,26 L 4.5,26 C 6,16 6.5,8 5.5,0 Z"
+    },
+    {
+      "id": "shin_near",
+      "parent": "leg_near",
+      "pivot": [0, 25],
+      "z": 1,
+      "note": "shin and boot, near side",
+      "path": "M -4.5,0 C -5,8 -4.5,15 -4,21 L -4.5,27 L 10,27 C 10,25 8,23.5 4.5,22 C 4.5,15 5,8 4.5,0 Z"
+    }
+  ]
+}

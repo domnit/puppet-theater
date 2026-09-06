@@ -1,0 +1,17 @@
+{
+  "id": "hand_open",
+  "version": 1,
+  "unit": 100,
+  "cap": 3.5,
+  "note": "an open hand for a keeper-like forearm, drawn at a 100-unit biped's scale (the keeper is unit 112, so scale by 100/112 when grafting onto him). Parent it to the forearm with the pivot at the wrist and shorten the forearm's own contour to end there; the hand rod stays on the forearm unless the play means to move the hand itself.",
+  "parts": [
+    {
+      "id": "hand_open",
+      "parent": null,
+      "pivot": [0, 0],
+      "z": 1,
+      "note": "palm opening from the wrist at [0,0] to three splayed fingers reaching to y=11.4, with a thumb spurring forward off the +X side at [5,3.4]. Drawn down its length (+Y), open and flat — the silhouette a hand makes held out to give or take something.",
+      "path": "M -3.1,-1.2 C -3.7,1.6 -3.5,4.6 -3.1,7.2 C -2.9,9.4 -2.2,10.8 -1.5,10.6 C -1.1,9.8 -1,8.6 -1,7.6 C -0.5,10.6 0.5,11.8 1.2,11.4 C 1.5,10.4 1.5,9 1.4,7.8 C 2,10.4 3,11 3.5,10.3 C 3.8,9.2 3.6,7.4 3.3,6.2 C 4.7,5.9 5.5,4.6 5.1,3.4 C 4.6,2.3 3.5,2.4 2.9,3.3 C 2.9,1.6 3.1,0.2 3.1,-1.2 C 1,-2.2 -1,-2.2 -3.1,-1.2 Z"
+    }
+  ]
+}
