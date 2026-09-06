@@ -2,3 +2,6 @@ node_modules
 .DS_Store
 out/
 data/
+.env
+.env.*
+!.env.example
