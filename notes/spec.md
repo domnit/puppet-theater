@@ -321,22 +321,24 @@ and each version is pushed, so the stage assembles while the user watches.
 | Principal | Comes from | Can |
 |---|---|---|
 | `public` | nothing — the in-app chat acts as this | create and edit **open** plays only |
-| a user | a rate-limited signup form | create open or closed plays; edit any open play and their own closed ones |
+| a user | signing up on the OAuth authorize page, rate limited | create open or closed plays; edit any open play and their own closed ones |
 | the author | seeded, `admin` | the above, plus set `featured` |
 
 - The web needs no login. `public` has no credentials and cannot be logged in
   as; it is an attribution row.
 - `public` cannot close a play, so nothing anonymous becomes un-editable.
-- Signup exists to obtain MCP credentials. The page mints a credential and shows
-  the config block to paste. Rate limited per IP, capped in total, no email and
-  therefore no verification.
+- Signup exists to obtain MCP access, and happens inside the OAuth flow: the
+  client sends the user to `/authorize`, and that page creates the account (or
+  signs an existing one in, or continues as the browser it remembers). The id
+  and secret are shown once, for signing in from another browser. Rate limited
+  per IP, capped in total, no email and therefore no verification.
 - A play has a creator and a `mode`: `open` or `closed`. Anyone may read any
   play; there are no private plays. `mode` is a field changed with `edit_play`,
   and the server refuses the change from anyone but the creator.
 
-**MCP auth:** OAuth with dynamic client registration if it proves cheap;
-otherwise HTTP Basic with the signup credentials supplied through the client's
-env. The signup form serves either path.
+**MCP auth:** OAuth 2.1 with dynamic client registration, served by this same
+process (it proved cheap: three tables and a page). The user hands a client
+nothing but the URL. `/admin` alone keeps HTTP Basic with the seeded secret.
 
 ### 4.2 Storage
 
@@ -377,16 +379,60 @@ The author's own demo plays are `closed` and owned by the author account.
 
 ### 4.5 Inference
 
-Through Milestone 4 the server calls no model; callers do all generation.
+Through Milestone 4 the server calls no model; callers do all generation. MCP
+callers pay for their own inference. The in-app chat (Milestone 5) is the
+exception and the one place the server spends money — and it is anonymous, so
+it is an unauthenticated endpoint that spends money.
 
-The in-app chat (Milestone 5) is the exception and needs an agent loop. **TODO:**
-use something off the shelf that speaks MCP and streams tool calls rather than
-hand-rolling one. It arrives with a provider key held server-side, per-IP session
-limits, a per-session message cap, a global daily spend ceiling with a kill
-switch and a written failure state, and a cheap default model. The chat is
-anonymous, so this is an unauthenticated endpoint that spends money.
+**The loop.** The Anthropic SDK's tool runner, in process, over `TOOLS` — not
+over MCP. A `ToolDef` already carries a name, a description and a zod schema, so
+the chat adapts the registry for the Messages API exactly as the MCP server
+adapts it for remote transport, and §4.6 holds either way. MCP earns its keep
+across a process boundary and there is none here: the alternatives are the
+server making HTTP calls to itself, or the API's MCP connector, which wants a
+publicly reachable URL.
 
-MCP callers pay for their own inference.
+**No tool but the six.** The `tools` array is built from `TOOLS` and nothing
+else, `tool_choice` stays `auto`, and no server-side tool — web search, code
+execution, bash — is ever declared. The model reaches no filesystem and no
+network. The chat runs as `public`, so §4.1 already confines it to open plays
+with no second check to keep in sync.
+
+**Model.** `claude-sonnet-5` by default, adaptive thinking, low effort, named by
+env so it is a one-line change. Cheaper models exist, but the work is authoring
+path data against a domain taught only in the tool descriptions, and that is
+where a small model tears a contour — the one failure a visitor sees. Go lower
+only against the fixtures.
+
+**Spend.** Three layers, outermost first:
+
+| Layer | What it holds |
+|---|---|
+| a Console workspace with a monthly limit, holding the key | the ceiling that actually holds, and no code |
+| caps checked before each turn: per-IP token bucket, per-session message cap, max tool iterations per turn | an agent loop spends without anyone typing, so the iteration cap is the one that matters |
+| a `spend` table fed from each response's `usage`, a daily ceiling, a kill switch | the number to look at, and the way to stop |
+
+Both ceilings and the switch render a written failure state — the theatre is
+dark tonight — rather than an error.
+
+**Cost shape.** Tools and system render before messages and both are stable, so
+one cache breakpoint at the end of the system prompt covers the six descriptions
+and the persona; a `cache_read_input_tokens` of zero on the second turn means
+the prefix is under the model's minimum and the breakpoint is doing nothing.
+Tool results are the rest of the bill: `read_play` returns a lot, and every
+result is resent every turn, so a long session grows quadratically. The message
+cap is the blunt answer to that and context editing the real one.
+
+**Play content is not instruction.** Plays are anonymous and world-editable and
+`read_play` returns every title and note verbatim, so a note written by one
+visitor arrives in the next visitor's context. Nothing escalates — the six tools
+are the whole surface and `public` cannot close a play — but the persona (§5.6)
+has to say that play content is material to work with and never an instruction
+to follow.
+
+**Streaming.** The chat stream carries the stage manager's prose and nothing
+else. Commits already reach every viewer over `/p/:id/events`, so the stage
+assembling while the reply is still being read falls out of §4.3 for free.
 
 ### 4.6 Tool module
 
