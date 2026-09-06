@@ -1,4 +1,5 @@
-// SQLite document store: users, plays, and an append-only version history.
+// SQLite document store: users, plays, an append-only version history, and
+// the OAuth rows (clients, codes, tokens, browser sessions).
 // Everything is synchronous (bun:sqlite is sync); the `doc`, `edits`, and
 // `scope` columns are opaque JSON text as far as this module is concerned —
 // it never imports src/doc, which owns their shape.
@@ -65,6 +66,31 @@ export interface Conflict {
   scope: string[];
 }
 
+/** A dynamically registered MCP client. `metadata` is the RFC 7591 document as given. */
+export interface OAuthClient {
+  id: string;
+  metadata: unknown;
+  hasSecret: boolean;
+  createdAt: number;
+}
+
+export interface OAuthCode {
+  clientId: string;
+  userId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  resource: string | null;
+}
+
+export type TokenKind = "access" | "refresh";
+
+export interface OAuthToken {
+  kind: TokenKind;
+  clientId: string;
+  user: User;
+  expiresAt: number;
+}
+
 /** Thrown by `commit` when the batch was computed against a stale base. */
 export class StaleError extends Error {
   readonly head: number;
@@ -104,6 +130,24 @@ export interface Store {
   setFeatured(id: string, featured: boolean): void;
   listPlays(args?: { query?: string; creator?: string; featured?: boolean; limit?: number }): PlayRow[];
   onCommit(cb: (e: CommitEvent) => void): () => void;
+
+  // OAuth (spec §4.1): clients that registered themselves, five-minute
+  // authorization codes, bearer tokens, and the browser sessions behind the
+  // authorize page. Codes, tokens and session ids are kept as SHA-256 digests
+  // (they carry their own entropy, so no salt); the caller keeps the original.
+  // Expired rows are swept whenever a code is issued.
+  registerClient(args: { id: string; secret?: string; metadata: unknown }): void;
+  getClient(id: string): OAuthClient | null;
+  verifyClient(id: string, secret: string): OAuthClient | null;
+  createCode(args: { code: string; ttlMs: number } & OAuthCode): void;
+  /** Deletes the code as it reads it; null if unknown, spent or expired. */
+  consumeCode(code: string): OAuthCode | null;
+  createToken(args: { token: string; kind: TokenKind; clientId: string; userId: string; ttlMs: number }): void;
+  getToken(token: string, kind: TokenKind): OAuthToken | null;
+  deleteToken(token: string): void;
+  createSession(args: { id: string; userId: string; ttlMs: number }): void;
+  getSession(id: string): User | null;
+  deleteSession(id: string): void;
   close(): void;
 }
 
@@ -134,6 +178,16 @@ function hashSecret(secret: string, salt: string): string {
   return new Bun.CryptoHasher("sha256").update(salt).update(secret).digest("hex");
 }
 
+function digest(s: string): string {
+  return new Bun.CryptoHasher("sha256").update(s).digest("hex");
+}
+
+function verifySalted(stored: string | null, secret: string): boolean {
+  if (!stored) return false;
+  const [salt, hash] = stored.split(":");
+  return hashSecret(secret, salt) === hash;
+}
+
 interface UserRowRaw {
   id: string;
   name: string | null;
@@ -161,6 +215,34 @@ interface VersionRowRaw {
   scope: string;
   author: string;
   created_at: number;
+}
+
+interface ClientRowRaw {
+  id: string;
+  secret_hash: string | null;
+  metadata: string;
+  created_at: number;
+}
+
+interface CodeRowRaw {
+  code_hash: string;
+  client_id: string;
+  user_id: string;
+  redirect_uri: string;
+  code_challenge: string;
+  resource: string | null;
+  expires_at: number;
+}
+
+interface TokenRowRaw extends UserRowRaw {
+  kind: TokenKind;
+  client_id: string;
+  user_id: string;
+  expires_at: number;
+}
+
+function toClient(r: ClientRowRaw): OAuthClient {
+  return { id: r.id, metadata: JSON.parse(r.metadata), hasSecret: r.secret_hash !== null, createdAt: r.created_at };
 }
 
 function toUser(r: UserRowRaw): User {
@@ -225,6 +307,34 @@ export function openStore(path?: string): Store {
       created_at INTEGER NOT NULL,
       PRIMARY KEY(play_id, n)
     );
+    CREATE TABLE IF NOT EXISTS oauth_clients (
+      id TEXT PRIMARY KEY,
+      secret_hash TEXT,
+      metadata TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS oauth_codes (
+      code_hash TEXT PRIMARY KEY,
+      client_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      redirect_uri TEXT NOT NULL,
+      code_challenge TEXT NOT NULL,
+      resource TEXT,
+      expires_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS oauth_tokens (
+      token_hash TEXT PRIMARY KEY,
+      kind TEXT NOT NULL CHECK(kind IN ('access','refresh')),
+      client_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS sessions (
+      id_hash TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    );
   `);
   db.query(
     "INSERT OR IGNORE INTO users (id, name, secret_hash, role, created_at) VALUES ('public', 'public', NULL, 'public', ?)",
@@ -259,6 +369,31 @@ export function openStore(path?: string): Store {
   const selectVersionSummaries = db.query(
     "SELECT n, edits, scope, author, created_at FROM versions WHERE play_id = ? ORDER BY n ASC",
   );
+
+  const insertClient = db.query("INSERT INTO oauth_clients (id, secret_hash, metadata, created_at) VALUES (?, ?, ?, ?)");
+  const selectClient = db.query("SELECT * FROM oauth_clients WHERE id = ?");
+  const insertCode = db.query(
+    "INSERT INTO oauth_codes (code_hash, client_id, user_id, redirect_uri, code_challenge, resource, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  );
+  const selectCode = db.query("SELECT * FROM oauth_codes WHERE code_hash = ?");
+  const deleteCode = db.query("DELETE FROM oauth_codes WHERE code_hash = ?");
+  const insertToken = db.query(
+    "INSERT INTO oauth_tokens (token_hash, kind, client_id, user_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+  const selectToken = db.query(
+    "SELECT t.kind, t.client_id, t.user_id, t.expires_at, u.id, u.name, u.role, u.secret_hash, u.created_at FROM oauth_tokens t JOIN users u ON u.id = t.user_id WHERE t.token_hash = ? AND t.kind = ?",
+  );
+  const deleteTokenByHash = db.query("DELETE FROM oauth_tokens WHERE token_hash = ?");
+  const insertSession = db.query("INSERT INTO sessions (id_hash, user_id, expires_at) VALUES (?, ?, ?)");
+  const selectSession = db.query(
+    "SELECT u.*, s.expires_at AS expires_at FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id_hash = ?",
+  );
+  const deleteSessionByHash = db.query("DELETE FROM sessions WHERE id_hash = ?");
+  const sweep = db.transaction((now: number) => {
+    db.query("DELETE FROM oauth_codes WHERE expires_at < ?").run(now);
+    db.query("DELETE FROM oauth_tokens WHERE expires_at < ?").run(now);
+    db.query("DELETE FROM sessions WHERE expires_at < ?").run(now);
+  });
 
   function getPlayRowRaw(id: string): PlayRowRaw | null {
     return (selectPlay.get(id) as PlayRowRaw | null) ?? null;
@@ -311,9 +446,7 @@ export function openStore(path?: string): Store {
 
     verifyUser(id, secret) {
       const row = selectUser.get(id) as UserRowRaw | null;
-      if (!row || !row.secret_hash) return null;
-      const [salt, hash] = row.secret_hash.split(":");
-      if (hashSecret(secret, salt) !== hash) return null;
+      if (!row || !verifySalted(row.secret_hash, secret)) return null;
       return toUser(row);
     },
 
@@ -415,6 +548,72 @@ export function openStore(path?: string): Store {
     onCommit(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
+    },
+
+    registerClient({ id, secret, metadata }) {
+      const salt = randomSalt();
+      insertClient.run(id, secret === undefined ? null : `${salt}:${hashSecret(secret, salt)}`, JSON.stringify(metadata), Date.now());
+    },
+
+    getClient(id) {
+      const row = selectClient.get(id) as ClientRowRaw | null;
+      return row ? toClient(row) : null;
+    },
+
+    verifyClient(id, secret) {
+      const row = selectClient.get(id) as ClientRowRaw | null;
+      if (!row || !verifySalted(row.secret_hash, secret)) return null;
+      return toClient(row);
+    },
+
+    createCode({ code, ttlMs, clientId, userId, redirectUri, codeChallenge, resource }) {
+      const now = Date.now();
+      sweep(now);
+      insertCode.run(digest(code), clientId, userId, redirectUri, codeChallenge, resource, now + ttlMs);
+    },
+
+    consumeCode(code) {
+      const hash = digest(code);
+      const row = selectCode.get(hash) as CodeRowRaw | null;
+      if (!row) return null;
+      deleteCode.run(hash);
+      if (row.expires_at < Date.now()) return null;
+      return {
+        clientId: row.client_id,
+        userId: row.user_id,
+        redirectUri: row.redirect_uri,
+        codeChallenge: row.code_challenge,
+        resource: row.resource,
+      };
+    },
+
+    createToken({ token, kind, clientId, userId, ttlMs }) {
+      const now = Date.now();
+      insertToken.run(digest(token), kind, clientId, userId, now + ttlMs, now);
+    },
+
+    getToken(token, kind) {
+      const row = selectToken.get(digest(token), kind) as TokenRowRaw | null;
+      if (!row || row.expires_at < Date.now()) return null;
+      return { kind: row.kind, clientId: row.client_id, user: toUser(row), expiresAt: row.expires_at };
+    },
+
+    deleteToken(token) {
+      deleteTokenByHash.run(digest(token));
+    },
+
+    createSession({ id, userId, ttlMs }) {
+      insertSession.run(digest(id), userId, Date.now() + ttlMs);
+    },
+
+    getSession(id) {
+      const row = selectSession.get(digest(id)) as (UserRowRaw & { expires_at: number }) | null;
+      if (!row || row.expires_at < Date.now()) return null;
+      return toUser(row);
+    },
+
+    deleteSession(id) {
+      deleteSessionByHash.run(digest(id));
     },
 
     close() {

@@ -1,5 +1,5 @@
-// The plain HTML pages the server renders itself: signup and the temporary
-// index. Same warm-neutral, flat, playbill spirit as the viewer (spec §5.5) —
+// The plain HTML pages the server renders itself: the authorize page and the
+// temporary index. Same warm-neutral, flat, playbill spirit as the viewer (spec §5.5) —
 // bone paper, near-black ink, one ochre rule, a serif with a point of view.
 // No framework, no build step, no gradients.
 
@@ -23,14 +23,21 @@ const CSS = `
   li { padding: 0.45rem 0; border-bottom: 1px solid var(--rule); }
   li .meta { color: var(--faint); font-size: 0.85em; }
   label { display: block; margin: 0 0 0.3rem; }
-  input[type=text] {
+  input[type=text], input[type=password] {
     font: inherit; padding: 0.4rem 0.5rem; width: 100%; max-width: 18rem;
     background: #fbf8f2; border: 1px solid var(--rule); color: inherit;
   }
+  input + label { margin-top: 0.8rem; }
   button {
     font: inherit; margin-top: 1rem; padding: 0.4rem 1.1rem; cursor: pointer;
     background: var(--ink); color: var(--paper); border: 0;
   }
+  button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--rule); }
+  .row { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: baseline; }
+  .row button { margin-top: 1rem; }
+  .meta { color: var(--faint); font-size: 0.85em; }
+  .small { display: block; font-size: 0.85em; font-style: normal; }
+  .error { color: var(--oxblood); }
   pre {
     background: #e8e0d1; border-left: 3px solid var(--ochre); padding: 0.7rem 0.9rem;
     overflow-x: auto; font: 13px/1.5 ui-monospace, "SF Mono", Menlo, monospace;
@@ -44,11 +51,11 @@ export function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-export function page(title: string, body: string, status = 200): Response {
+export function page(title: string, body: string, status = 200, headers: Record<string, string> = {}): Response {
   const html = `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title><style>${CSS}</style>
 </head><body><main>${body}</main></body></html>`;
-  return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8" } });
+  return new Response(html, { status, headers: { "Content-Type": "text/html; charset=utf-8", ...headers } });
 }

@@ -1,5 +1,7 @@
 // The server end to end on an ephemeral port: the read API, the MCP endpoint
-// through the real SDK client, the change feed, and signup's rate limit.
+// through the real SDK client with a bearer token minted straight into the
+// store, and the change feed. The OAuth flow that mints tokens for real is in
+// oauth.test.ts.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -13,6 +15,7 @@ let running: RunningServer;
 let store: Store;
 let base: string;
 let creds: { id: string; secret: string };
+let token: string;
 let playId: string;
 
 function ctx(): ToolContext {
@@ -25,8 +28,8 @@ function ctx(): ToolContext {
   };
 }
 
-function basic(): string {
-  return `Basic ${Buffer.from(`${creds.id}:${creds.secret}`).toString("base64")}`;
+function bearer(): string {
+  return `Bearer ${token}`;
 }
 
 beforeAll(() => {
@@ -34,6 +37,8 @@ beforeAll(() => {
   running = startServer({ store, port: 0 });
   base = running.url;
   creds = store.createUser({ name: "tester", role: "user" });
+  token = "test-access-token";
+  store.createToken({ token, kind: "access", clientId: "test-client", userId: creds.id, ttlMs: 60_000 });
   playId = create_play(ctx(), { title: "The Lamp" }).play_id;
 });
 
@@ -63,20 +68,31 @@ describe("read routes", () => {
 });
 
 describe("mcp", () => {
-  test("POST /mcp without credentials is a 401 that asks for Basic", async () => {
+  test("POST /mcp without a token is a 401 that points at the resource metadata", async () => {
     const res = await fetch(`${base}/mcp`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
     });
     expect(res.status).toBe(401);
-    expect(res.headers.get("www-authenticate")).toMatch(/^Basic realm=/);
+    expect(res.headers.get("www-authenticate")).toContain(
+      `resource_metadata="${base}/.well-known/oauth-protected-resource/mcp"`,
+    );
+    expect(res.headers.get("www-authenticate")).not.toContain("invalid_token");
+
+    const stale = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", Authorization: "Bearer nope" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+    expect(stale.status).toBe(401);
+    expect(stale.headers.get("www-authenticate")).toContain('error="invalid_token"');
   });
 
   test("initialize, tools/list and one tools/call over the SDK client", async () => {
     const client = new Client({ name: "puppet-test", version: "0" });
     await client.connect(
-      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: basic() } } }),
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: bearer() } } }),
     );
     const names = (await client.listTools()).tools.map((t) => t.name);
     expect(names.sort()).toEqual(["create_play", "edit_cast", "edit_play", "edit_scene", "list_plays", "read_play"]);
@@ -90,7 +106,7 @@ describe("mcp", () => {
   test("a tool that refuses comes back as an error result, not a transport failure", async () => {
     const client = new Client({ name: "puppet-test", version: "0" });
     await client.connect(
-      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: basic() } } }),
+      new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: bearer() } } }),
     );
     const called = await client.callTool({ name: "read_play", arguments: { play_id: "pl_nope" } });
     expect(called.isError).toBe(true);
@@ -121,21 +137,4 @@ test("the change feed says hello and then carries the next commit", async () => 
     edits: [{ op: "set", sel: "stage.tempo", value: 120 }],
   });
   await reader.cancel();
-});
-
-test("signup mints credentials and then rate-limits the address", async () => {
-  const post = () =>
-    fetch(`${base}/signup`, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Forwarded-For": "203.0.113.9" },
-      body: "name=tester",
-    });
-
-  const first = await post();
-  expect(first.status).toBe(200);
-  expect(await first.text()).toContain("claude mcp add --transport http puppet-theater");
-
-  let last = first;
-  for (let i = 0; i < 5; i++) last = await post();
-  expect(last.status).toBe(429);
 });

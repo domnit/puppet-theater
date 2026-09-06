@@ -1,21 +1,25 @@
 // The product server: the viewer page and its change feed, a small read API,
-// the MCP endpoint, signup, and a temporary index. `bun run serve`.
+// the MCP endpoint and the OAuth endpoints that guard it, and a temporary
+// index. `bun run serve`.
 //
 // Env: PORT (4300), PUPPET_DB (data/theater.sqlite), PUPPET_BASE_URL (the
-// origin play URLs are built from; defaults to the request's own),
-// PUPPET_ADMIN_SECRET (seeds the `author` admin account), PUPPET_DEV=1
-// (rebuild the viewer bundle when src/ changes).
+// origin play URLs are built from and the OAuth issuer; defaults to the
+// request's own origin, so set it behind a proxy), PUPPET_ADMIN_SECRET (seeds
+// the `author` admin account), PUPPET_DEV=1 (rebuild the viewer bundle when
+// src/ changes).
 
 import { createImportResolver, libraryIndex, type ImportSources } from "../doc/library";
 import { loadLibrary } from "../library";
 import { openStore, type Store } from "../store/db";
 import { list_plays, ToolError, type Principal, type ToolContext } from "../tools";
 import { devAssets, viewerPage, viewerScript, viewerStyle } from "./assets";
-import { basicAuth, PUBLIC, unauthorized } from "./auth";
+import { basicAuth, bearerAuth, PUBLIC, unauthorized, unauthorizedBasic } from "./auth";
+import { createAuthorize } from "./authorize";
 import { esc, page } from "./html";
+import { createLimiter } from "./limit";
 import { handleMcp } from "./mcp";
+import * as oauth from "./oauth";
 import { createHub } from "./sse";
-import { createSignup } from "./signup";
 
 export interface ServerOptions {
   store?: Store;
@@ -44,7 +48,8 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
   const imports = createImportResolver(sources);
   const library = libraryIndex(sources);
   const hub = createHub(store);
-  const signup = createSignup(store);
+  const authorize = createAuthorize(store);
+  const registrations = createLimiter(20, 60 * 60 * 1000);
   const unwatch = opts.dev ? devAssets() : null;
 
   const context = (req: Request, principal: Principal): ToolContext => ({
@@ -62,19 +67,30 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
     async fetch(req, self) {
       const url = new URL(req.url);
       const path = url.pathname;
+      const base = opts.baseUrl ?? url.origin;
       try {
-        if (path === "/" && req.method === "GET") return index(store);
-        if (path === "/signup") {
-          if (req.method === "GET") return signup.form();
-          if (req.method === "POST") {
-            const form = await req.formData();
-            const origin = opts.baseUrl ?? new URL(req.url).origin;
-            return signup.create(String(form.get("name") ?? ""), clientIp(req, self), origin);
-          }
+        if (path === "/" && req.method === "GET") return index(store, base);
+
+        // OAuth: discovery, registration, the authorize page, tokens.
+        if (req.method === "OPTIONS" && (path.startsWith("/.well-known/") || path === "/register" || path === "/token")) {
+          return oauth.preflight();
         }
+        if (path === "/.well-known/oauth-authorization-server" && req.method === "GET") {
+          return oauth.json(oauth.authorizationServerMetadata(base));
+        }
+        if ((path === "/.well-known/oauth-protected-resource" || path === "/.well-known/oauth-protected-resource/mcp") && req.method === "GET") {
+          return oauth.json(oauth.protectedResourceMetadata(base));
+        }
+        if (path === "/register" && req.method === "POST") return oauth.register(store, req, clientIp(req, self), registrations);
+        if (path === "/authorize") {
+          if (req.method === "GET") return authorize.get(req, base);
+          if (req.method === "POST") return authorize.post(req, clientIp(req, self), base);
+        }
+        if (path === "/token" && req.method === "POST") return oauth.token(store, req, base);
+
         if (path === "/mcp") {
-          const principal = basicAuth(req, store);
-          if (!principal) return unauthorized();
+          const principal = bearerAuth(req, store);
+          if (!principal) return unauthorized(req, base);
           return handleMcp(req, context(req, principal));
         }
         if (path === "/admin/featured" && req.method === "POST") return featured(req, store);
@@ -143,7 +159,7 @@ function clientIp(req: Request, self: { requestIP(req: Request): { address: stri
 
 async function featured(req: Request, store: Store): Promise<Response> {
   const principal = basicAuth(req, store);
-  if (!principal) return unauthorized();
+  if (!principal) return unauthorizedBasic();
   if (principal.role !== "admin") return text("admin only", 403);
   const body = (await req.json()) as { play_id?: string; featured?: boolean };
   if (!body.play_id || !store.getPlay(body.play_id)) return text("no such play", 404);
@@ -152,7 +168,7 @@ async function featured(req: Request, store: Store): Promise<Response> {
 }
 
 /** Temporary: the real landing page (a featured play, played read-only) is Milestone 5. */
-function index(store: Store): Response {
+function index(store: Store, base: string): Response {
   const rows = store.listPlays({ limit: 100 });
   const items = rows
     .map(
@@ -167,7 +183,8 @@ function index(store: Store): Response {
 <p class="sub">A shadow-puppet stage that agents write to. This list is a placeholder — the
 landing page proper comes later.</p>
 ${rows.length ? `<ul>${items}</ul>` : "<p>Nothing staged yet.</p>"}
-<footer><a href="/signup">Credentials for the MCP server</a></footer>`,
+<footer>MCP: <code>${esc(oauth.resourceUrl(base))}</code> — give that to your client. It will
+bring you back here to sign in.</footer>`,
   );
 }
 

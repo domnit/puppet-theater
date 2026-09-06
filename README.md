@@ -83,25 +83,41 @@ PUPPET_DEV=1 bun run serve    # rebuild the viewer bundle when src/ changes
 |---|---|---|
 | `PORT` | `4300` | listen port |
 | `PUPPET_DB` | `data/theater.sqlite` | SQLite file; `:memory:` in tests |
-| `PUPPET_BASE_URL` | the request's own origin | origin the play URLs are built from |
+| `PUPPET_BASE_URL` | the request's own origin | origin the play URLs are built from, and the OAuth issuer; set it behind a proxy |
 | `PUPPET_ADMIN_SECRET` | — | seeds the `author` account (role `admin`) with this secret |
 | `PUPPET_DEV` | — | `1`: readable bundle, rebuilt on change |
 
-Routes: `GET /` (a placeholder index of plays), `GET /signup` and `POST /signup`,
-`POST|DELETE /mcp`, `GET /p/:id` and `GET /p/:id/events` (SSE), `GET /api/plays`,
-`GET /api/plays/:id`, `GET /api/plays/:id/versions`, `POST /admin/featured`.
+Routes: `GET /` (a placeholder index of plays), `POST|DELETE /mcp`, the OAuth
+set (`GET /.well-known/oauth-authorization-server`,
+`GET /.well-known/oauth-protected-resource[/mcp]`, `POST /register`,
+`GET|POST /authorize`, `POST /token`), `GET /p/:id` and `GET /p/:id/events` (SSE),
+`GET /api/plays`, `GET /api/plays/:id`, `GET /api/plays/:id/versions`,
+`POST /admin/featured`.
 
-### Credentials
+### Connecting
 
-`/signup` mints an id and a secret — no email, 5 an hour per address, 500 accounts
-in all — and shows them once, with the line to paste:
+The only thing to hand anyone is the URL:
 
 ```bash
-claude mcp add --transport http puppet-theater http://localhost:4300/mcp \
-  --header "Authorization: Basic $(printf '%s' 'ID:SECRET' | base64)"
+claude mcp add --transport http puppet-theater http://localhost:4300/mcp
 ```
 
-Every request to `/mcp` carries that header; without it the server answers 401.
+The first call gets a 401 that points at the OAuth metadata; the client
+registers itself (dynamic client registration), opens `/authorize` in a
+browser, and that page is where signup and sign-in happen — not before. A
+newcomer types a name, or nothing, and gets an account; the id and secret are
+shown once, for signing in from another browser later. A browser that has been
+here before is remembered by a cookie and continues with one click. No email,
+so no verification: 5 new accounts an hour per address, 500 in all.
+
+The server is its own authorization server — OAuth 2.1 code flow with PKCE,
+opaque bearer tokens in SQLite (access one hour, refresh thirty days,
+rotating), clients registered per RFC 7591, metadata per RFC 8414 and 9728.
+Nothing external is involved, and no new configuration: `PUPPET_BASE_URL` is
+the issuer, and behind a proxy it must be set (and be https; clients refuse an
+http issuer that is not localhost). `/admin/featured` keeps HTTP Basic with the
+seeded admin secret, since it is curled rather than connected to.
+
 The anonymous principal `public` (what the in-app chat will act as) never
 authenticates: it may create and edit open plays and nothing else.
 
@@ -139,8 +155,11 @@ src/tools/index.ts     the six tools and the TOOLS registry
 src/tools/descriptions.ts  each tool's description — the model's only manual
 src/server/index.ts    Bun.serve: routes, tool context, admin seeding
 src/server/mcp.ts      stateless streamable-HTTP MCP over TOOLS
+src/server/auth.ts     bearer tokens for /mcp, Basic for /admin, the 401 challenge
+src/server/oauth.ts    metadata, registration, the token endpoint, code issuance
+src/server/authorize.ts  the authorize page: signup, sign-in, remembered browser
+src/server/limit.ts    per-address sliding-window limiter
 src/server/sse.ts      /p/:id/events: one store subscription, fanned out per play
-src/server/signup.ts   credential minting, rate limited
 src/server/assets.ts   viewer page, bundle and stylesheet
 src/server/html.ts     the plain pages the server renders itself
 ```
