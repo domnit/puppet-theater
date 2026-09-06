@@ -1,0 +1,13 @@
+#!/bin/sh
+# Typecheck and test before every commit. Both together take under a second,
+# so there is no reason to skip them; `git commit --no-verify` does if you must.
+#
+# Enabled by `git config core.hooksPath .githooks` (see README).
+#
+# Note: this checks the working tree, not the staged snapshot. With a partial
+# `git add` it can pass on code you are not committing — rare here, and worth
+# it to keep the hook trivial.
+set -e
+exec 1>&2
+bun run check
+bun test

@@ -9,6 +9,8 @@ Spec: [notes/spec.md](notes/spec.md). Reasoning: [notes/spec-scratch.md](notes/s
 bun install
 bun run dev        # harness at http://localhost:4200
 bun run check      # tsc
+bun test           # unit tests + fixture invariants
+git config core.hooksPath .githooks   # once per clone: run check + test before each commit
 bun scripts/snapshot.ts fixtures/plays/00-showcase.json 1.9 5.3 7.8 9.8   # stills → out/  (--no-rods, --no-hand-rods)
 ```
 
@@ -43,6 +45,8 @@ src/harness/           the dev page
 dev.ts                 Bun dev server: static, bundle-on-request, SSE reload
 fixtures/puppets/      hand-authored puppets
 fixtures/plays/        six failure-mode fixtures (spec §6.1) and a showcase
+test/                  unit tests for the pure core; an invariant sweep over the fixtures
+.githooks/pre-commit   runs check + test; enable with core.hooksPath (above)
 ```
 
 ### Conventions decided at the keyboard
