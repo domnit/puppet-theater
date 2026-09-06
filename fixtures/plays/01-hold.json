@@ -1,0 +1,23 @@
+{
+  "id": "fx-hold",
+  "schemaVersion": 1,
+  "title": "A four-beat hold — does the idle layer save it?",
+  "meta": { "exercises": "single keyframe held for four beats; only breath, sway and joint drift move" },
+  "stage": { "tempo": 72 },
+  "cast": { "keeper": "puppets/keeper.json" },
+  "scenes": [
+    { "id": "s1", "title": "The keeper waits",
+      "beats": [
+        { "id": "b1", "label": "he waits", "length": 4,
+          "tracks": {
+            "keeper": [
+              { "at": 0, "pose": {
+                  "joints": { "head": 8, "arm_near": -22, "farm_near": -48, "arm_far": 10, "farm_far": -6 },
+                  "root": { "x": 0.5, "y": 0.56, "scale": 1, "facing": 1, "plane": "mid" } } }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

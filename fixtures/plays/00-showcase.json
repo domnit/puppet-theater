@@ -1,0 +1,59 @@
+{
+  "id": "showcase",
+  "schemaVersion": 1,
+  "title": "The Keeper and the Fox",
+  "meta": { "exercises": "everything at once: a walk with a hanging prop, a far-plane entrance, a plane change, a keyed root tilt, a lamp cue, a scene dip" },
+  "stage": { "tempo": 96 },
+  "cast": { "keeper": "puppets/keeper-lantern.json", "fox": "puppets/fox.json" },
+  "scenes": [
+    { "id": "s1", "title": "The lamp is carried",
+      "beats": [
+        { "id": "b1", "label": "he walks in", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "arm_near": -20, "farm_near": -45, "head": 4 },
+                               "root": { "x": 0.10, "y": 0.56, "facing": 1, "plane": "mid" } } } ] } },
+        { "id": "b2", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.17 } } } ] } },
+        { "id": "b3", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "head": 4 }, "root": { "x": 0.24 } } } ] } },
+        { "id": "b4", "label": "a fox, far off", "length": 1, "tracks": {
+          "keeper": [ { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.31 } } } ],
+          "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": -25, "shin_fl": 20, "leg_fr": 20, "shin_fr": 45, "leg_bl": 22, "shin_bl": 10, "leg_br": -20, "shin_br": 35, "tail": 8, "head": -4 },
+                                        "root": { "x": 0.97, "y": 0.76, "scale": 0.4, "facing": -1, "plane": "far" } } } ] } },
+        { "id": "b5", "label": "step", "length": 1, "tracks": {
+          "keeper": [ { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "head": 4 }, "root": { "x": 0.38 } } } ],
+          "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": 20, "shin_fl": 45, "leg_fr": -25, "shin_fr": 20, "leg_bl": -20, "shin_bl": 35, "leg_br": 22, "shin_br": 10, "tail": -6 }, "root": { "x": 0.91 } } } ] } },
+        { "id": "b6", "label": "step", "length": 1, "tracks": {
+          "keeper": [ { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.45 } } } ],
+          "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": -25, "shin_fl": 20, "leg_fr": 20, "shin_fr": 45, "leg_bl": 22, "shin_bl": 10, "leg_br": -20, "shin_br": 35, "tail": 8 }, "root": { "x": 0.86 } } } ] } },
+        { "id": "b7", "label": "he stops and lifts the lamp", "length": 2, "tracks": {
+          "keeper": [ { "at": 0, "pose": { "joints": { "leg_near": -4, "shin_near": 2, "leg_far": 4, "shin_far": 0, "arm_far": 6, "farm_far": -10, "head": 2 }, "root": { "x": 0.50 } } },
+                      { "at": 0.7, "ease": "out", "pose": { "joints": { "arm_near": -100, "farm_near": -40, "head": -8 } } } ],
+          "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": 20, "shin_fl": 45, "leg_fr": -25, "shin_fr": 20, "leg_bl": -20, "shin_bl": 35, "leg_br": 22, "shin_br": 10, "tail": -6 }, "root": { "x": 0.81 } } },
+                   { "at": 1, "ease": "out", "pose": { "joints": { "leg_fl": 2, "shin_fl": 0, "leg_fr": -6, "shin_fr": 4, "leg_bl": -4, "shin_bl": 6, "leg_br": 6, "shin_br": 2, "tail": 2, "head": -16 }, "root": { "x": 0.78 } } } ] } },
+        { "id": "b8", "label": "they see each other", "length": 2, "tracks": {
+          "fox": [ { "at": 0.8, "ease": "inOut", "pose": { "joints": { "ear_l": -20, "tail": 16 } } },
+                   { "at": 1.6, "ease": "out", "pose": { "joints": { "ear_l": -4 } } } ] } }
+      ]
+    },
+    { "id": "s2", "title": "The fox comes near",
+      "beats": [
+        { "id": "b1", "label": "she comes down", "length": 1, "tracks": { "fox": [
+          { "at": 0, "pose": { "joints": { "leg_fl": -25, "shin_fl": 20, "leg_fr": 20, "shin_fr": 45, "leg_bl": 22, "shin_bl": 10, "leg_br": -20, "shin_br": 35, "tail": 8, "head": -6 }, "root": { "x": 0.77, "plane": "far", "scale": 0.4 } } },
+          { "at": 0.02, "ease": "linear", "pose": { "root": { "plane": "mid", "scale": 0.328, "y": 0.80 } } } ] } },
+        { "id": "b2", "label": "step", "length": 1, "tracks": { "fox": [
+          { "at": 0, "pose": { "joints": { "leg_fl": 20, "shin_fl": 45, "leg_fr": -25, "shin_fr": 20, "leg_bl": -20, "shin_bl": 35, "leg_br": 22, "shin_br": 10, "tail": -6 }, "root": { "x": 0.72, "scale": 0.35, "y": 0.805 } } } ] } },
+        { "id": "b3", "label": "step", "length": 1, "tracks": { "fox": [
+          { "at": 0, "pose": { "joints": { "leg_fl": -25, "shin_fl": 20, "leg_fr": 20, "shin_fr": 45, "leg_bl": 22, "shin_bl": 10, "leg_br": -20, "shin_br": 35, "tail": 8 }, "root": { "x": 0.67, "scale": 0.38, "y": 0.81 } } } ] } },
+        { "id": "b4", "label": "she sits; he lowers the lamp", "length": 2, "tracks": {
+          "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": 20, "shin_fl": 45, "leg_fr": -25, "shin_fr": 20, "leg_bl": -20, "shin_bl": 35, "leg_br": 22, "shin_br": 10, "tail": -6 }, "root": { "x": 0.64, "scale": 0.4, "y": 0.815 } } },
+                   { "at": 1, "ease": "out", "pose": { "joints": { "torso": -12, "leg_fl": 12, "shin_fl": -4, "leg_fr": 10, "shin_fr": 0, "leg_bl": -42, "shin_bl": 64, "leg_br": -42, "shin_br": 64, "tail": 4, "head": -6 }, "root": { "x": 0.635, "y": 0.83 } } } ],
+          "keeper": [ { "at": 0.4, "ease": "inOut", "pose": { "joints": { "arm_near": -30, "farm_near": -32, "head": 14 } } } ] } },
+        { "id": "b5", "label": "the lamp goes down", "length": 3,
+          "tracks": { "fox": [ { "at": 0.5, "ease": "inOut", "pose": { "joints": { "tail": 14 } } },
+                               { "at": 1.2, "ease": "inOut", "pose": { "joints": { "tail": -8 } } },
+                               { "at": 2, "ease": "inOut", "pose": { "joints": { "tail": 6 } } } ] },
+          "fx": [ { "at": 0.3, "type": "lamp", "to": 0.22, "over": 2.4 } ] }
+      ]
+    }
+  ]
+}

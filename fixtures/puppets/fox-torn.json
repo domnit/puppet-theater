@@ -1,0 +1,170 @@
+{
+  "id": "fox-torn",
+  "name": "The Fox, torn ear",
+  "note": "a lean fox — long snout, brush tail carried high, low-slung and wary. Root pivot is the withers; the body runs along X, legs hang down. Faces +X. The far ear is torn: its own path overrides the mirror.",
+  "unit": 66,
+  "cap": 3,
+  "restPose": {
+    "head": -6,
+    "tail": 0,
+    "leg_fl": 2,
+    "leg_fr": -6,
+    "shin_fr": 4,
+    "leg_bl": -4,
+    "leg_br": 6,
+    "shin_bl": 6,
+    "shin_br": 2,
+    "ear_l": -4,
+    "ear_r": 4
+  },
+  "look": {
+    "opacity": 1,
+    "idle": 0.8
+  },
+  "parts": [
+    {
+      "id": "torso",
+      "parent": null,
+      "pivot": [
+        0,
+        0
+      ],
+      "z": 0,
+      "note": "long low body from rump at x=-30 to chest at x=+20, slight dip behind the shoulders, belly at y=16",
+      "path": "M -30,4 C -31,-1 -22,-3 -10,-1 C 2,0 12,-3 20,0 C 24,4 23,12 18,15 C 8,18 -6,18 -20,15 C -28,14 -32,10 -30,4 Z"
+    },
+    {
+      "id": "head",
+      "parent": "torso",
+      "pivot": [
+        19,
+        1
+      ],
+      "z": 2,
+      "note": "narrow wedge running forward along +X, snout as long as the skull, tip at [31,3]",
+      "path": "M -2,-7 C 4,-11 12,-11 18,-6 C 22,-4 26,-1 30,1 L 31,3 C 27,6 21,8 15,8 C 9,9 3,9 -2,6 C -5,3 -5,-3 -2,-7 Z"
+    },
+    {
+      "id": "ear_l",
+      "parent": "head",
+      "pivot": [
+        4,
+        -8
+      ],
+      "z": 3,
+      "note": "tall pointed ear, near side, leaning slightly back",
+      "path": "M 0,0 C -2,-4 -3,-9 -2,-14 C 2,-10 5,-6 7,-1 C 5,1 2,1 0,0 Z"
+    },
+    {
+      "id": "ear_r",
+      "parent": "head",
+      "pivot": [
+        10,
+        -9
+      ],
+      "z": 1,
+      "mirrorOf": "ear_l",
+      "note": "far ear, torn — a notch bitten out of the leading edge; overrides the mirror of ear_l",
+      "path": "M 0,0 C 2,-4 3,-9 2,-14 L 0,-9 L -2,-11 C -4,-7 -6,-4 -7,-1 C -5,1 -2,1 0,0 Z"
+    },
+    {
+      "id": "tail",
+      "parent": "torso",
+      "pivot": [
+        -29,
+        6
+      ],
+      "z": -1,
+      "note": "brush tail, drawn back and up from the rump, thick at the middle",
+      "path": "M 0,-3 C -6,-8 -14,-10 -22,-16 C -28,-20 -33,-17 -30,-11 C -27,-5 -18,0 -8,3 C -4,5 -1,4 0,-3 Z"
+    },
+    {
+      "id": "leg_fl",
+      "parent": "torso",
+      "pivot": [
+        15,
+        12
+      ],
+      "z": 3,
+      "note": "front upper leg, near side, 15 down from the chest",
+      "path": "M -3.5,0 C -4.5,6 -4,11 -3,15 L 3,15 C 4,11 4.5,6 3.5,0 Z"
+    },
+    {
+      "id": "shin_fl",
+      "parent": "leg_fl",
+      "pivot": [
+        0,
+        14
+      ],
+      "z": 3,
+      "note": "front lower leg and paw, near side",
+      "path": "M -3,0 C -3.5,5 -3,9 -3,12 L -3.5,15 L 4.5,15 L 4.5,13 L 3,12 C 3,9 3.5,5 3,0 Z"
+    },
+    {
+      "id": "leg_fr",
+      "parent": "torso",
+      "pivot": [
+        13,
+        12
+      ],
+      "z": -2,
+      "note": "front upper leg, far side",
+      "path": "M -3.5,0 C -4.5,6 -4,11 -3,15 L 3,15 C 4,11 4.5,6 3.5,0 Z"
+    },
+    {
+      "id": "shin_fr",
+      "parent": "leg_fr",
+      "pivot": [
+        0,
+        14
+      ],
+      "z": -2,
+      "note": "front lower leg and paw, far side",
+      "path": "M -3,0 C -3.5,5 -3,9 -3,12 L -3.5,15 L 4.5,15 L 4.5,13 L 3,12 C 3,9 3.5,5 3,0 Z"
+    },
+    {
+      "id": "leg_bl",
+      "parent": "torso",
+      "pivot": [
+        -20,
+        11
+      ],
+      "z": 3,
+      "note": "haunch, near side — broad at the hip, narrowing to the hock at y=15",
+      "path": "M -8,0 C -10,6 -8,12 -4,15 L 3,15 C 4,10 5.5,5 5,0 Z"
+    },
+    {
+      "id": "shin_bl",
+      "parent": "leg_bl",
+      "pivot": [
+        -1,
+        14
+      ],
+      "z": 3,
+      "note": "back lower leg and paw, near side",
+      "path": "M -3,0 C -3.5,5 -3,9 -3,12 L -3.5,15 L 4.5,15 L 4.5,13 L 3,12 C 3,9 3.5,5 3,0 Z"
+    },
+    {
+      "id": "leg_br",
+      "parent": "torso",
+      "pivot": [
+        -22,
+        11
+      ],
+      "z": -2,
+      "note": "haunch, far side",
+      "path": "M -8,0 C -10,6 -8,12 -4,15 L 3,15 C 4,10 5.5,5 5,0 Z"
+    },
+    {
+      "id": "shin_br",
+      "parent": "leg_br",
+      "pivot": [
+        -1,
+        14
+      ],
+      "z": -2,
+      "note": "back lower leg and paw, far side",
+      "path": "M -3,0 C -3.5,5 -3,9 -3,12 L -3.5,15 L 4.5,15 L 4.5,13 L 3,12 C 3,9 3.5,5 3,0 Z"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "harness",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev.ts"],
+      "port": 4200
+    }
+  ]
+}

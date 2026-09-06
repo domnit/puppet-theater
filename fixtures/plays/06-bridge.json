@@ -1,0 +1,22 @@
+{
+  "id": "fx-bridge",
+  "schemaVersion": 1,
+  "title": "A coat cut short — do the cap discs bridge it?",
+  "meta": { "exercises": "left: torso stops 3 units above the hip pivots (inside cap radius 4) — bridged. right: stops 8 units short — the gap shows. Turn on the cap overlay to see the discs doing the work." },
+  "stage": { "tempo": 72 },
+  "cast": { "near": "puppets/keeper-near-miss.json", "wide": "puppets/keeper-wide-miss.json" },
+  "scenes": [
+    { "id": "s1", "title": "Cap bridging",
+      "beats": [
+        { "id": "b1", "label": "near miss and wide miss", "length": 4,
+          "tracks": {
+            "near": [ { "at": 0, "pose": { "joints": { "head": 4, "arm_near": -14, "farm_near": -20 }, "root": { "x": 0.34, "y": 0.56, "facing": 1, "plane": "mid" } } },
+                      { "at": 2, "ease": "inOut", "pose": { "joints": { "leg_near": -30, "shin_near": 20 } } } ],
+            "wide": [ { "at": 0, "pose": { "joints": { "head": 4, "arm_near": -14, "farm_near": -20 }, "root": { "x": 0.66, "y": 0.56, "facing": -1, "plane": "mid" } } },
+                      { "at": 2, "ease": "inOut", "pose": { "joints": { "leg_near": -30, "shin_near": 20 } } } ]
+          }
+        }
+      ]
+    }
+  ]
+}

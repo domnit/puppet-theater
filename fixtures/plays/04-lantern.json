@@ -1,0 +1,35 @@
+{
+  "id": "fx-lantern",
+  "schemaVersion": 1,
+  "title": "A lantern in hand — pendulum through a hand pivot",
+  "meta": { "exercises": "a swinging prop parented to the hand: it hangs straight down through the walk, swings when the arm is raised fast, and settles" },
+  "stage": { "tempo": 96 },
+  "cast": { "keeper": "puppets/keeper-lantern.json" },
+  "scenes": [
+    { "id": "s1", "title": "Along the cliff path",
+      "beats": [
+        { "id": "b1", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "arm_near": -20, "farm_near": -45, "head": 4 },
+                               "root": { "x": 0.16, "y": 0.56, "facing": 1, "plane": "mid" } } } ] } },
+        { "id": "b2", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.23 } } } ] } },
+        { "id": "b3", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "head": 4 }, "root": { "x": 0.30 } } } ] } },
+        { "id": "b4", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.37 } } } ] } },
+        { "id": "b5", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -26, "shin_near": 6, "leg_far": 20, "shin_far": 40, "arm_far": -22, "farm_far": -15, "head": 4 }, "root": { "x": 0.44 } } } ] } },
+        { "id": "b6", "label": "step", "length": 1, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": 20, "shin_near": 40, "leg_far": -26, "shin_far": 6, "arm_far": 24, "farm_far": -8, "head": 6 }, "root": { "x": 0.51 } } } ] } },
+        { "id": "b7", "label": "he stops and lifts the lantern", "length": 2, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "leg_near": -4, "shin_near": 2, "leg_far": 4, "shin_far": 0, "arm_far": 6, "farm_far": -10, "head": 2 }, "root": { "x": 0.56 } } },
+          { "at": 0.6, "ease": "out", "pose": { "joints": { "arm_near": -100, "farm_near": -40, "head": -8 } } } ] } },
+        { "id": "b8", "label": "it swings and settles", "length": 4, "tracks": { "keeper": [
+          { "at": 0, "pose": { "joints": { "arm_near": -100 } } } ] } },
+        { "id": "b9", "label": "the lantern goes out", "length": 3,
+          "tracks": { "keeper": [ { "at": 1, "ease": "inOut", "pose": { "joints": { "arm_near": -40, "farm_near": -30, "head": 10 } } } ] },
+          "fx": [ { "at": 0.5, "type": "lamp", "to": 0.3, "over": 2 } ] }
+      ]
+    }
+  ]
+}

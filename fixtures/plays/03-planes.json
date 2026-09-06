@@ -1,0 +1,25 @@
+{
+  "id": "fx-planes",
+  "schemaVersion": 1,
+  "title": "Three keepers, three planes — does depth read?",
+  "meta": { "exercises": "far / mid / near: scale, blur and opacity from one table; feet placed on a receding floor" },
+  "stage": { "tempo": 72 },
+  "cast": {
+    "far": "puppets/keeper.json",
+    "mid": "puppets/keeper.json",
+    "near": "puppets/keeper.json"
+  },
+  "scenes": [
+    { "id": "s1", "title": "Depth",
+      "beats": [
+        { "id": "b1", "label": "three planes", "length": 4,
+          "tracks": {
+            "far":  [ { "at": 0, "pose": { "joints": { "head": 2, "arm_near": -14, "farm_near": -20 }, "root": { "x": 0.24, "y": 0.555, "facing": 1, "plane": "far" } } } ],
+            "mid":  [ { "at": 0, "pose": { "joints": { "head": 6, "arm_near": -30, "farm_near": -50 }, "root": { "x": 0.50, "y": 0.548, "facing": -1, "plane": "mid" } } } ],
+            "near": [ { "at": 0, "pose": { "joints": { "head": -4, "arm_far": 18, "farm_far": -30 }, "root": { "x": 0.76, "y": 0.52, "facing": -1, "plane": "near" } } } ]
+          }
+        }
+      ]
+    }
+  ]
+}

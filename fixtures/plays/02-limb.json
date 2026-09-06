@@ -1,0 +1,47 @@
+{
+  "id": "fx-limb",
+  "schemaVersion": 1,
+  "title": "A fast, wide arm — seams, shortest arc, follow-through",
+  "meta": { "exercises": "155° raise in one beat, snap down, then a 170→-170 key that must take the 20° route through 180" },
+  "stage": { "tempo": 80 },
+  "cast": { "keeper": "puppets/keeper.json" },
+  "scenes": [
+    { "id": "s1", "title": "The arm",
+      "beats": [
+        { "id": "b1", "label": "raise", "length": 2,
+          "tracks": {
+            "keeper": [
+              { "at": 0, "pose": {
+                  "joints": { "arm_near": -10, "farm_near": -12, "arm_far": 8, "farm_far": -8, "head": 2 },
+                  "root": { "x": 0.5, "y": 0.56, "plane": "mid" } } },
+              { "at": 1, "ease": "out", "pose": { "joints": { "arm_near": -165, "farm_near": -20, "head": -10 } } }
+            ]
+          }
+        },
+        { "id": "b2", "label": "snap down", "length": 2,
+          "tracks": {
+            "keeper": [
+              { "at": 0, "pose": { "joints": { "arm_near": -165 } } },
+              { "at": 1, "ease": "in", "pose": { "joints": { "arm_near": 25, "farm_near": 5, "head": 6 } } }
+            ]
+          }
+        },
+        { "id": "b3", "label": "wrap: 170 to -170", "length": 3,
+          "tracks": {
+            "keeper": [
+              { "at": 0, "ease": "inOut", "pose": { "joints": { "arm_near": 170, "farm_near": 0 } } },
+              { "at": 2, "ease": "inOut", "pose": { "joints": { "arm_near": -170 } } }
+            ]
+          }
+        },
+        { "id": "b4", "label": "return", "length": 2,
+          "tracks": {
+            "keeper": [
+              { "at": 1.5, "ease": "inOut", "pose": { "joints": { "arm_near": -10, "farm_near": -12, "head": 2 } } }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

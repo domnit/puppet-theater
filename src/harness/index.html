@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Puppet Theater — harness</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="bill">
+      <h1>Puppet Theater <span class="sub">— milestone 0 harness</span></h1>
+      <div class="controls">
+        <label class="field">Fixture <select id="fixture"></select></label>
+        <div class="seg" id="view">
+          <button data-view="stage" class="on">Stage</button>
+          <button data-view="puppet">One puppet</button>
+        </div>
+        <label class="field" id="puppet-pick-wrap" hidden>Puppet <select id="puppet-pick"></select></label>
+      </div>
+    </header>
+
+    <main>
+      <section class="house">
+        <div id="stage-wrap" class="stage-wrap"></div>
+        <div class="transport">
+          <button id="play" class="wide" title="space">Play</button>
+          <button id="to-start" title="home">|◀</button>
+          <button id="step-back" title="←">◀ frame</button>
+          <button id="step-fwd" title="→">frame ▶</button>
+          <input id="scrub" type="range" min="0" max="10000" value="0" step="1" />
+          <div class="readout">
+            <span id="time">0.00 s</span>
+            <span id="beat">beat 0.00</span>
+            <span id="where"></span>
+          </div>
+        </div>
+        <div id="errors" class="errors" hidden></div>
+      </section>
+
+      <aside class="wings">
+        <section>
+          <h2>Layers</h2>
+          <label><input type="checkbox" data-layer="idle" checked /> idle — breath and sway</label>
+          <label><input type="checkbox" data-layer="followThrough" checked /> follow-through</label>
+          <label><input type="checkbox" data-layer="swing" checked /> swing — pendulum</label>
+          <label><input type="checkbox" data-layer="rods" checked /> control rods</label>
+        </section>
+        <section>
+          <h2>Overlays</h2>
+          <label><input type="checkbox" data-overlay="pivots" /> pivots and axes</label>
+          <label><input type="checkbox" data-overlay="bounds" /> part boundaries</label>
+          <label><input type="checkbox" data-overlay="bboxes" /> bounding boxes</label>
+          <label><input type="checkbox" data-overlay="caps" /> cap discs</label>
+        </section>
+        <section>
+          <h2>Play</h2>
+          <div id="playinfo" class="info"></div>
+        </section>
+        <section>
+          <h2>Cast</h2>
+          <div id="tree" class="tree"></div>
+        </section>
+        <section>
+          <h2>Part</h2>
+          <div id="detail" class="info muted">Click a part on the stage or in the cast list.</div>
+        </section>
+      </aside>
+    </main>
+  </div>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>
