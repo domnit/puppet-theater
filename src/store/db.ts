@@ -89,8 +89,10 @@ function formatStale(head: number, base: number, conflicts: Conflict[]): string 
 }
 
 export interface Store {
-  createUser(args: { id?: string; name?: string; role: Role }): { id: string; secret: string };
+  createUser(args: { id?: string; name?: string; role: Role; secret?: string }): { id: string; secret: string };
   verifyUser(id: string, secret: string): User | null;
+  /** Replace an existing user's secret — the server re-seeds the admin from env at boot. */
+  setSecret(id: string, secret: string): void;
   getUser(id: string): User | null;
   countUsers(): number;
   createPlay(args: { creator: string; mode: Mode; doc: Play }): PlayRow;
@@ -234,6 +236,7 @@ export function openStore(path?: string): Store {
     "INSERT INTO users (id, name, secret_hash, role, created_at) VALUES (?, ?, ?, ?, ?)",
   );
   const selectUser = db.query("SELECT * FROM users WHERE id = ?");
+  const updateUserSecret = db.query("UPDATE users SET secret_hash = ? WHERE id = ?");
   const selectUserCount = db.query("SELECT COUNT(*) as c FROM users WHERE role != 'public'");
 
   const insertPlay = db.query(
@@ -298,9 +301,9 @@ export function openStore(path?: string): Store {
   );
 
   return {
-    createUser({ id, name, role }) {
+    createUser({ id, name, role, secret: given }) {
       const uid = id ?? randomId("u_", 8);
-      const secret = randomSecret();
+      const secret = given ?? randomSecret();
       const salt = randomSalt();
       insertUser.run(uid, name ?? null, `${salt}:${hashSecret(secret, salt)}`, role, Date.now());
       return { id: uid, secret };
@@ -312,6 +315,11 @@ export function openStore(path?: string): Store {
       const [salt, hash] = row.secret_hash.split(":");
       if (hashSecret(secret, salt) !== hash) return null;
       return toUser(row);
+    },
+
+    setSecret(id, secret) {
+      const salt = randomSalt();
+      updateUserSecret.run(`${salt}:${hashSecret(secret, salt)}`, id);
     },
 
     getUser(id) {

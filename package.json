@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun run dev.ts",
+    "serve": "bun run src/server/index.ts",
     "check": "tsc --noEmit",
     "test": "bun test"
   },

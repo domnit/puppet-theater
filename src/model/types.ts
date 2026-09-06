@@ -23,6 +23,8 @@ export const PartSchema = z.object({
   note: z.string().max(400).optional(),
   /** Reflect another part's contour across this part's local Y axis instead of drawing one. */
   mirrorOf: id.optional(),
+  /** Provenance of an imported part: the resolved source ref, never resolved at render time. */
+  from: z.string().optional(),
   /** Pendulum looseness, 0..1, for hanging things. */
   swing: z.number().min(0).max(1).optional(),
   /** Control rod attached here, in this part's frame. The rod drives this
