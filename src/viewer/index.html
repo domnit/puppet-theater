@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Puppet Theater</title>
+  <link rel="stylesheet" href="/viewer.css" />
+</head>
+<body>
+  <!-- The stage is the page: everything else is a title, a line and one glyph. -->
+  <div id="house"><div id="stage-wrap"></div></div>
+
+  <div id="bill">
+    <h1 id="title"></h1>
+    <p id="notice" hidden></p>
+  </div>
+
+  <div id="controls">
+    <button id="play" type="button" aria-label="Play">
+      <svg viewBox="0 0 14 16" width="13" height="15" aria-hidden="true">
+        <path class="play" d="M1,0 L13,8 L1,16 Z" />
+        <g class="pause"><rect x="1" y="0" width="4" height="16" /><rect x="9" y="0" width="4" height="16" /></g>
+      </svg>
+    </button>
+    <div id="track" role="slider" aria-label="Position" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="line"></div>
+      <div class="elapsed" id="elapsed"></div>
+      <div class="head" id="head"></div>
+    </div>
+  </div>
+
+  <!-- The lower-right corner stays empty: the chat button lands there (spec §5.6). -->
+  <script type="module" src="/viewer.js"></script>
+</body>
+</html>

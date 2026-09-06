@@ -1,0 +1,144 @@
+/* The viewer page. The stage carries the look (src/render/markup.ts); the page
+   is the wall it hangs on: one flat warm near-black, paper grain, a vignette,
+   and nothing else. The only gradient on the page is the lamp, inside the SVG. */
+
+:root {
+  --wall: #170e09;          /* the wall behind the scrim — flat, no ramp */
+  --bone: #e9d9b4;
+  --bone-dim: rgba(233, 217, 180, 0.58);
+  --hair: rgba(233, 217, 180, 0.20);
+  --hair-lit: rgba(233, 217, 180, 0.48);
+  --ochre: #d67828;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --gutter: 26px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; }
+
+body {
+  background-color: var(--wall);
+  /* Paper grain, from an feTurbulence tile. It shows in the letterbox only:
+     the scrim paints over it. */
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncA type='table' tableValues='0 0.5'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)' opacity='0.5'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  color: var(--bone);
+  font-family: var(--serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A soft vignette on the wall, behind the stage — so it darkens the room, not
+   the scrim (which carries its own). */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 46%, rgba(8, 4, 2, 0) 45%, rgba(8, 4, 2, 0.62) 100%);
+}
+
+#house { position: fixed; inset: 0; z-index: 1; }
+#stage-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* The stage box is exactly 16:9 and centred; the rest of the viewport is the
+   wall. Sizing the element to the frame also clips what the puppeteers hold
+   below the stage floor, so the rods stop at the proscenium. */
+svg.stage {
+  display: block;
+  aspect-ratio: 16 / 9;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: auto;
+  max-height: 100vh;
+}
+
+#bill {
+  position: fixed;
+  z-index: 3;
+  top: 18px;
+  left: var(--gutter);
+  max-width: min(46ch, calc(100vw - 2 * var(--gutter)));
+  pointer-events: none;
+}
+#title {
+  margin: 0;
+  font-weight: 400;
+  font-size: 15px;
+  font-variant: small-caps;
+  letter-spacing: 0.13em;
+  color: var(--bone-dim);
+  /* An ink halo so the title holds against the lit scrim as well as the wall. */
+  text-shadow: 0 1px 2px rgba(11, 7, 5, 0.6);
+}
+#notice {
+  margin: 5px 0 0;
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0.02em;
+  color: rgba(233, 217, 180, 0.4);
+}
+#notice[hidden] { display: none; }
+
+/* Controls: out of the way until the pointer comes down to them. The right
+   88px stay clear for the Milestone 5 chat button. */
+#controls {
+  position: fixed;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 62px;
+  padding: 0 88px 0 var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 420ms ease;
+}
+#controls.on { opacity: 1; pointer-events: auto; }
+
+#play {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bone-dim);
+  line-height: 0;
+  cursor: pointer;
+}
+#play:hover, #play:focus-visible { color: var(--bone); outline: none; }
+#play svg { fill: currentColor; }
+#play .pause { display: none; }
+#play.playing .play { display: none; }
+#play.playing .pause { display: inline; }
+
+#track {
+  position: relative;
+  flex: 1;
+  height: 30px;
+  cursor: pointer;
+  touch-action: none;
+}
+#track .line, #track .elapsed {
+  position: absolute;
+  top: 50%;
+  height: 1px;
+}
+#track .line { left: 0; right: 0; background: var(--hair); }
+#track .elapsed { left: 0; width: 0; background: var(--hair-lit); }
+#track .head {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--ochre);
+}
