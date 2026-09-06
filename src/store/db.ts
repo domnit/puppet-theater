@@ -192,7 +192,7 @@ function toVersionRow(r: VersionRowRaw): VersionRow {
 }
 
 export function openStore(path?: string): Store {
-  const file = path ?? process.env.PUPPER_DB ?? "data/theater.sqlite";
+  const file = path ?? process.env.PUPPET_DB ?? "data/theater.sqlite";
   if (file !== ":memory:") mkdirSync(dirname(file), { recursive: true });
   const db = new Database(file);
   if (file !== ":memory:") db.exec("PRAGMA journal_mode = WAL");

@@ -4,7 +4,7 @@
 //
 // Idempotent: a fixture whose title already exists as a play by `author` is
 // skipped, and the `author` admin user is created only once (secret from
-// PUPPER_ADMIN_SECRET when set, so a fixed secret can be scripted). Each
+// PUPPET_ADMIN_SECRET when set, so a fixed secret can be scripted). Each
 // fixtures/plays/*.json becomes a closed play owned by `author`, embedding
 // cast entries given as paths the way test/helpers.ts does; 00-showcase is
 // marked featured. If the library has a `heron`, also seeds one open play
@@ -21,7 +21,7 @@ import { PlaySchema, formatIssues, type Play } from "../src/model/types";
 import { openStore } from "../src/store/db";
 
 const root = path.resolve(import.meta.dir, "..");
-const baseUrl = process.env.PUPPER_BASE_URL ?? `http://localhost:${process.env.PORT ?? 4300}`;
+const baseUrl = process.env.PUPPET_BASE_URL ?? `http://localhost:${process.env.PORT ?? 4300}`;
 const urlFor = (id: string) => `${baseUrl}/p/${id}`;
 
 const args = process.argv.slice(2);
@@ -33,7 +33,7 @@ const store = openStore(dbPath);
 // ---------- admin user ----------
 
 if (!store.getUser("author")) {
-  const created = store.createUser({ id: "author", name: "author", role: "admin", secret: process.env.PUPPER_ADMIN_SECRET });
+  const created = store.createUser({ id: "author", name: "author", role: "admin", secret: process.env.PUPPET_ADMIN_SECRET });
   console.log(`user 'author' created (secret: ${created.secret})`);
 } else {
   console.log("user 'author' already exists");

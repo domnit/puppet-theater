@@ -74,7 +74,7 @@ describe("mcp", () => {
   });
 
   test("initialize, tools/list and one tools/call over the SDK client", async () => {
-    const client = new Client({ name: "pupper-test", version: "0" });
+    const client = new Client({ name: "puppet-test", version: "0" });
     await client.connect(
       new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: basic() } } }),
     );
@@ -88,7 +88,7 @@ describe("mcp", () => {
   });
 
   test("a tool that refuses comes back as an error result, not a transport failure", async () => {
-    const client = new Client({ name: "pupper-test", version: "0" });
+    const client = new Client({ name: "puppet-test", version: "0" });
     await client.connect(
       new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: basic() } } }),
     );
@@ -133,7 +133,7 @@ test("signup mints credentials and then rate-limits the address", async () => {
 
   const first = await post();
   expect(first.status).toBe(200);
-  expect(await first.text()).toContain("claude mcp add --transport http pupper-theater");
+  expect(await first.text()).toContain("claude mcp add --transport http puppet-theater");
 
   let last = first;
   for (let i = 0; i < 5; i++) last = await post();

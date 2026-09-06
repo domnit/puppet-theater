@@ -30,8 +30,8 @@ export function createSignup(store: Store): Signup {
   return {
     form() {
       return page(
-        "pupper-theater — credentials",
-        `<h1>pupper-theater</h1>
+        "puppet-theater — credentials",
+        `<h1>puppet-theater</h1>
 <p class="sub">A shadow-puppet stage that agents write to.</p>
 <p>These are credentials for the MCP server: six tools for staging a wordless
 puppet play, and a URL where it plays as you write it. No email, no password to
@@ -47,11 +47,11 @@ remember — the secret below is shown once, and a new pair costs nothing.</p>
 
     create(name, ip, baseUrl) {
       if (store.countUsers() >= MAX_USERS) {
-        return page("pupper-theater", `<h1>The house is full</h1><p class="sub">This build caps signups at ${MAX_USERS}.</p>`, 503);
+        return page("puppet-theater", `<h1>The house is full</h1><p class="sub">This build caps signups at ${MAX_USERS}.</p>`, 503);
       }
       if (limited(ip)) {
         return page(
-          "pupper-theater",
+          "puppet-theater",
           `<h1>Slow down</h1><p class="sub">${PER_IP} credentials an hour per address. Try again later.</p>`,
           429,
         );
@@ -59,18 +59,18 @@ remember — the secret below is shown once, and a new pair costs nothing.</p>
       const { id, secret } = store.createUser({ name: name.slice(0, 60) || undefined, role: "user" });
       const basic = Buffer.from(`${id}:${secret}`).toString("base64");
       const config = JSON.stringify(
-        { mcpServers: { "pupper-theater": { type: "http", url: `${baseUrl}/mcp`, headers: { Authorization: `Basic ${basic}` } } } },
+        { mcpServers: { "puppet-theater": { type: "http", url: `${baseUrl}/mcp`, headers: { Authorization: `Basic ${basic}` } } } },
         null,
         2,
       );
       return page(
-        "pupper-theater — your credentials",
+        "puppet-theater — your credentials",
         `<h1>Yours</h1>
 <p class="sub warn">The secret is shown once. Copy it now.</p>
 <pre>id      ${esc(id)}
 secret  ${esc(secret)}</pre>
 <h2>Claude Code</h2>
-<pre>claude mcp add --transport http pupper-theater ${esc(baseUrl)}/mcp --header "Authorization: Basic ${esc(basic)}"</pre>
+<pre>claude mcp add --transport http puppet-theater ${esc(baseUrl)}/mcp --header "Authorization: Basic ${esc(basic)}"</pre>
 <h2>Everything else</h2>
 <pre>${esc(config)}</pre>
 <footer>Ask it to stage something. It will hand you back a URL that plays as it

@@ -1,7 +1,7 @@
 // The viewer's three files: `src/viewer/index.html` (served at /p/:id, the page
 // reads the play id out of location.pathname), the browser bundle of
 // `src/viewer/main.ts` (/viewer.js) and `src/viewer/style.css` (/viewer.css).
-// The bundle is built on first request and kept in memory; with PUPPER_DEV=1
+// The bundle is built on first request and kept in memory; with PUPPET_DEV=1
 // the server watches src/ and drops it. Milestone 0's harness keeps its own
 // server (dev.ts) and is not served from here.
 
@@ -15,7 +15,7 @@ let bundle: Promise<{ ok: true; js: string } | { ok: false; log: string }> | nul
 let dev = false;
 
 /**
- * PUPPER_DEV=1: keep the bundle readable, and drop it whenever anything under
+ * PUPPET_DEV=1: keep the bundle readable, and drop it whenever anything under
  * src/ changes. Returns the watcher's stop function.
  */
 export function devAssets(): () => void {

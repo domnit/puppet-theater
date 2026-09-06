@@ -1,4 +1,4 @@
-# pupper-theater
+# puppet-theater
 
 A 2D shadow-puppet theater that agents stage and revise at any granularity.
 Spec: [notes/spec.md](notes/spec.md). Reasoning: [notes/spec-scratch.md](notes/spec-scratch.md).
@@ -76,16 +76,16 @@ test/                  unit tests for the pure core; an invariant sweep over the
 
 ```bash
 bun run serve      # theater at http://localhost:4300
-PUPPER_DEV=1 bun run serve    # rebuild the viewer bundle when src/ changes
+PUPPET_DEV=1 bun run serve    # rebuild the viewer bundle when src/ changes
 ```
 
 | Env | Default | What |
 |---|---|---|
 | `PORT` | `4300` | listen port |
-| `PUPPER_DB` | `data/theater.sqlite` | SQLite file; `:memory:` in tests |
-| `PUPPER_BASE_URL` | the request's own origin | origin the play URLs are built from |
-| `PUPPER_ADMIN_SECRET` | — | seeds the `author` account (role `admin`) with this secret |
-| `PUPPER_DEV` | — | `1`: readable bundle, rebuilt on change |
+| `PUPPET_DB` | `data/theater.sqlite` | SQLite file; `:memory:` in tests |
+| `PUPPET_BASE_URL` | the request's own origin | origin the play URLs are built from |
+| `PUPPET_ADMIN_SECRET` | — | seeds the `author` account (role `admin`) with this secret |
+| `PUPPET_DEV` | — | `1`: readable bundle, rebuilt on change |
 
 Routes: `GET /` (a placeholder index of plays), `GET /signup` and `POST /signup`,
 `POST|DELETE /mcp`, `GET /p/:id` and `GET /p/:id/events` (SSE), `GET /api/plays`,
@@ -97,7 +97,7 @@ Routes: `GET /` (a placeholder index of plays), `GET /signup` and `POST /signup`
 in all — and shows them once, with the line to paste:
 
 ```bash
-claude mcp add --transport http pupper-theater http://localhost:4300/mcp \
+claude mcp add --transport http puppet-theater http://localhost:4300/mcp \
   --header "Authorization: Basic $(printf '%s' 'ID:SECRET' | base64)"
 ```
 
@@ -188,5 +188,5 @@ where it came from (`lib.heron@1`, `pl_nvx27t/cast/heron@2`), and an imported
 part subtree is rescaled by the ratio of the two puppets' `unit`.
 
 ```bash
-PUPPER_ADMIN_SECRET=… bun scripts/seed.ts   # fixture plays as closed demo plays, plus an open play built by importing lib.heron
+PUPPET_ADMIN_SECRET=… bun scripts/seed.ts   # fixture plays as closed demo plays, plus an open play built by importing lib.heron
 ```

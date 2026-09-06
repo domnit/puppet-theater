@@ -12,7 +12,7 @@
       "runtimeExecutable": "bun",
       "runtimeArgs": ["run", "src/server/index.ts"],
       "port": 4300,
-      "env": { "PUPPER_DEV": "1" }
+      "env": { "PUPPET_DEV": "1" }
     }
   ]
 }

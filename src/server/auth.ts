@@ -23,6 +23,6 @@ export function basicAuth(req: Request, store: Store): Principal | null {
 export function unauthorized(message = "credentials required — get a pair at /signup"): Response {
   return new Response(`${message}\n`, {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="pupper-theater"', "Content-Type": "text/plain" },
+    headers: { "WWW-Authenticate": 'Basic realm="puppet-theater"', "Content-Type": "text/plain" },
   });
 }

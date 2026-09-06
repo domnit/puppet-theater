@@ -1101,7 +1101,7 @@ Legend: **★** = the current choice. **DECIDED** / **CUT** are settled; the res
 | A10 | Does it narrate its edits? | in-fiction only / **★**in-fiction reply + a structured "what changed" chip with undo | The chip is direct evidence for Theme 2's "real control over iteration". Losing it to purity is a bad trade. |
 | A11 | Remix sources — **CUT** | **★**none bundled; MCP users bring their own | Better than a curated list, and it removes the whole copyright surface. |
 | A12 | Opening prompts — **CUT** | **★**none | This is a creative tool and the user should do some work. Explanation moves to the accompanying document or video. Raises the stakes on A9 and A10, which are now the only onboarding. |
-| A13 | Name | "Puppet Theater" / keep **pupper** / something else | Repo says `pupper-theater`, doc says Puppet. If `pupper` is the joke, commit to it; if it's a typo, fix it before it's in a URL. |
+| A13 | Name — **DECIDED: puppet** | **★**"puppet-theater" / keep `pupper` / something else | `pupper` was a typo, not a joke. Everything the code and spec say is "puppet", so the name follows: package name, env prefix `PUPPET_`, MCP server name and the signup pages all read `puppet-theater`. The checkout directory and the GitHub remote still say `pupper-theater` and are renamed out of band. |
 | A14 | Failure aesthetics | error text / **★**in-fiction ("the fox won't bend that way") / silent clamp | Clamping silently is worse than admitting it — the user should learn the puppet has limits. |
 
 ## B. Data model

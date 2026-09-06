@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "pupper-theater",
+      "name": "puppet-theater",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.30.0",
         "zod": "^4.5.4",

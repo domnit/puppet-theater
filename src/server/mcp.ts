@@ -16,7 +16,7 @@ export async function handleMcp(req: Request, ctx: ToolContext): Promise<Respons
     return new Response("method not allowed\n", { status: 405, headers: { Allow: "POST, DELETE" } });
   }
   const server = new McpServer(
-    { name: "pupper-theater", version: "0.2.0" },
+    { name: "puppet-theater", version: "0.2.0" },
     { instructions: "Stage wordless shadow-puppet plays. Every edit shows up live at the play's URL." },
   );
   for (const tool of TOOLS) {

@@ -1,9 +1,9 @@
 // The product server: the viewer page and its change feed, a small read API,
 // the MCP endpoint, signup, and a temporary index. `bun run serve`.
 //
-// Env: PORT (4300), PUPPER_DB (data/theater.sqlite), PUPPER_BASE_URL (the
+// Env: PORT (4300), PUPPET_DB (data/theater.sqlite), PUPPET_BASE_URL (the
 // origin play URLs are built from; defaults to the request's own),
-// PUPPER_ADMIN_SECRET (seeds the `author` admin account), PUPPER_DEV=1
+// PUPPET_ADMIN_SECRET (seeds the `author` admin account), PUPPET_DEV=1
 // (rebuild the viewer bundle when src/ changes).
 
 import { createImportResolver, libraryIndex, type ImportSources } from "../doc/library";
@@ -125,7 +125,7 @@ export function startServer(opts: ServerOptions = {}): RunningServer {
 
 /** The author account, so the seeded demo plays have an owner (spec §4.1). */
 function seedAdmin(store: Store): void {
-  const secret = process.env.PUPPER_ADMIN_SECRET;
+  const secret = process.env.PUPPET_ADMIN_SECRET;
   if (!secret) return;
   if (store.getUser("author")) store.setSecret("author", secret);
   else store.createUser({ id: "author", name: "author", role: "admin", secret });
@@ -162,8 +162,8 @@ function index(store: Store): Response {
     )
     .join("");
   return page(
-    "pupper-theater",
-    `<h1>pupper-theater</h1>
+    "puppet-theater",
+    `<h1>puppet-theater</h1>
 <p class="sub">A shadow-puppet stage that agents write to. This list is a placeholder — the
 landing page proper comes later.</p>
 ${rows.length ? `<ul>${items}</ul>` : "<p>Nothing staged yet.</p>"}
@@ -174,8 +174,8 @@ ${rows.length ? `<ul>${items}</ul>` : "<p>Nothing staged yet.</p>"}
 if (import.meta.main) {
   const running = startServer({
     port: Number(process.env.PORT ?? 4300),
-    baseUrl: process.env.PUPPER_BASE_URL,
-    dev: process.env.PUPPER_DEV === "1",
+    baseUrl: process.env.PUPPET_BASE_URL,
+    dev: process.env.PUPPET_DEV === "1",
   });
-  console.log(`pupper-theater at ${running.url}`);
+  console.log(`puppet-theater at ${running.url}`);
 }
