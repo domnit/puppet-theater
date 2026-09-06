@@ -1,0 +1,34 @@
+app = "puppet-theater"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "4300"
+  PUPPET_DB = "/data/theater.sqlite"
+  # OAuth issuer and the origin play URLs are built from. Required behind the proxy.
+  PUPPET_BASE_URL = "https://puppet-theater.fly.dev"
+
+[http_service]
+  internal_port = 4300
+  force_https = true
+  # SQLite on a volume and the in-memory SSE hub both assume a single process.
+  # Never let this scale past one machine.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    path = "/plays"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+
+[mounts]
+  source = "data"
+  destination = "/data"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  # 256 is tight: the viewer bundle is built with Bun.build in-process.
+  memory = "512mb"

@@ -1,0 +1,13 @@
+.git
+.github
+.githooks
+.claude
+node_modules
+data
+out
+notes
+test
+.env
+.env.*
+!.env.example
+.DS_Store
