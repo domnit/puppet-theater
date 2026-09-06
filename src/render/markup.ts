@@ -5,6 +5,9 @@ import { PLANES, STAGE_H, STAGE_W } from "../engine/evaluate";
 import type { Plane } from "../model/types";
 
 export const INK = "#14100c";
+/** Rods are held behind the figure, farther from the screen: a touch softer and lighter than the puppet. */
+export const ROD_OPACITY = 0.78;
+export const ROD_BLUR = 1.3;
 
 export function stageDefs(): string {
   return `<defs>
@@ -27,6 +30,7 @@ export function stageDefs(): string {
       <rect x="0" y="0" width="5" height="1" fill="#3a2410" opacity="0.5"/>
       <rect x="0" y="0" width="1" height="5" fill="#3a2410" opacity="0.5"/>
     </pattern>
+    <filter id="blur-rod" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="${ROD_BLUR}"/></filter>
     ${(["far", "mid", "near"] as Plane[]).map((p) => `<filter id="blur-${p}" x="-15%" y="-15%" width="130%" height="130%"><feGaussianBlur stdDeviation="${PLANES[p].blur}"/></filter>`).join("\n    ")}
   </defs>`;
 }

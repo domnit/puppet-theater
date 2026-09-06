@@ -117,4 +117,5 @@ aside input[type="checkbox"] { accent-color: var(--ochre); margin-right: 6px; }
 .tree .part.sel { border-left-color: var(--ochre); background: var(--house-2); }
 .tree .part .id { white-space: nowrap; }
 .tree .part .tag { color: var(--bone-dim); font-size: 12px; margin-left: 6px; }
+.tree .part .tag.warn { color: var(--ochre); }
 .tree .part .ang { color: var(--bone-dim); }

@@ -15,18 +15,20 @@ import { frameToSvg } from "../src/render/snapshot";
 const args = process.argv.slice(2);
 const file = args.shift();
 if (!file) {
-  console.error("usage: bun scripts/snapshot.ts <play.json> [seconds...] [--every S] [--out DIR] [--no-rods]");
+  console.error("usage: bun scripts/snapshot.ts <play.json> [seconds...] [--every S] [--out DIR] [--no-rods] [--no-hand-rods]");
   process.exit(2);
 }
 let every: number | null = null;
 let outDir: string | null = null;
 let rods = true;
+let handRods = true;
 const times: number[] = [];
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === "--every") every = Number(args[++i]);
   else if (a === "--out") outDir = args[++i];
   else if (a === "--no-rods") rods = false;
+  else if (a === "--no-hand-rods") handRods = false;
   else times.push(Number(a));
 }
 
@@ -55,7 +57,7 @@ if (times.length === 0) times.push(0, ev.durationSeconds / 2, ev.durationSeconds
 const dir = outDir ?? path.join("out", play.id);
 await mkdir(dir, { recursive: true });
 for (const t of times.sort((a, b) => a - b)) {
-  const svg = frameToSvg(ev.frame(Math.min(t, ev.durationSeconds)), { rods });
+  const svg = frameToSvg(ev.frame(Math.min(t, ev.durationSeconds)), { rods, handRods });
   const name = path.join(dir, `${t.toFixed(2).replace(".", "_")}s.svg`);
   await Bun.write(name, svg);
   console.log(name);

@@ -22,14 +22,14 @@
     { "id": "arm_far", "parent": "torso", "pivot": [1, 4], "z": -1,
       "note": "upper arm, far side, hangs 20 down from the shoulder",
       "path": "M -4,0 C -5,7 -4.5,14 -3.5,20 L 3.5,20 C 4.5,14 5,7 4,0 Z" },
-    { "id": "farm_far", "parent": "arm_far", "pivot": [0, 19], "z": -1,
+    { "id": "farm_far", "parent": "arm_far", "pivot": [0, 19], "z": -1, "rod": [0, 21],
       "note": "forearm and a closed hand, far side",
       "path": "M -3.5,0 C -4,6 -3.5,12 -3,17 C -4.5,19 -4,23 -1,25 C 2,26 4,23 3.5,20 L 3,17 C 3.5,12 4,6 3.5,0 Z" },
 
     { "id": "arm_near", "parent": "torso", "pivot": [1, 4], "z": 3,
       "note": "upper arm, near side",
       "path": "M -4,0 C -5,7 -4.5,14 -3.5,20 L 3.5,20 C 4.5,14 5,7 4,0 Z" },
-    { "id": "farm_near", "parent": "arm_near", "pivot": [0, 19], "z": 3,
+    { "id": "farm_near", "parent": "arm_near", "pivot": [0, 19], "z": 3, "rod": [0, 21],
       "note": "forearm and hand, near side — the hand that carries things; its tip is at [0,25]",
       "path": "M -3.5,0 C -4,6 -3.5,12 -3,17 C -4.5,19 -4,23 -1,25 C 2,26 4,23 3.5,20 L 3,17 C 3.5,12 4,6 3.5,0 Z" },
 

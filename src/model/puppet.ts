@@ -13,6 +13,11 @@ export interface ResolvedPart {
   z: number;
   note: string;
   swing: number;
+  /** Control rod attach point in this part's frame, when the part carries one. */
+  rod?: Vec;
+  /** Rod-bearing parts in this part's subtree (including itself) — what drives
+   *  it. Empty means nothing holds this part: it can only swing. */
+  drivenBy: string[];
   /** True when the contour came from `mirrorOf` rather than an own `path`. */
   mirrored: boolean;
   mirrorOf?: string;
@@ -40,6 +45,10 @@ export interface ResolvedPuppet {
   /** Pre-order traversal from roots. */
   ordered: ResolvedPart[];
   roots: ResolvedPart[];
+  /** Rod-bearing parts, main rods first, in tree order. */
+  rods: ResolvedPart[];
+  /** Rest-pose matrix of every part in the root frame, local units. */
+  rest: Map<string, Mat>;
   /** Whole-puppet extent at rest, in local units of the root frame. */
   extent: BBox;
   source: Puppet;
@@ -121,6 +130,8 @@ export function resolvePuppet(p: Puppet): ResolvedPuppet {
       z: Number(part.z) || 0,
       note: part.note ?? "",
       swing: Number(part.swing) || 0,
+      rod: part.rod ? [Number(part.rod[0]) || 0, Number(part.rod[1]) || 0] : depth === 0 ? [0, 0] : undefined,
+      drivenBy: [],
       mirrored: !(typeof part.path === "string" && part.path.trim()) && !!part.mirrorOf,
       mirrorOf: part.mirrorOf,
       segs,
@@ -137,6 +148,11 @@ export function resolvePuppet(p: Puppet): ResolvedPuppet {
   const roots = childrenOf.get(null) ?? [];
   if (roots.length === 0) throw new PuppetError(p.id, null, "puppet has no root part");
   for (const r of roots) visit(r, 0);
+  // A rod at a part holds that part and the whole chain up to the root.
+  for (const part of ordered) {
+    if (!part.rod) continue;
+    for (let cur: ResolvedPart | undefined = part; cur; cur = cur.parent ? parts.get(cur.parent) : undefined) cur.drivenBy.push(part.id);
+  }
 
   const resolved: ResolvedPuppet = {
     id: p.id,
@@ -150,9 +166,12 @@ export function resolvePuppet(p: Puppet): ResolvedPuppet {
     parts,
     ordered,
     roots: roots.map((r) => parts.get(r.id)!),
+    rods: ordered.filter((x) => x.rod).sort((a, b) => Number(b.depth === 0) - Number(a.depth === 0) || a.order - b.order),
+    rest: new Map(),
     extent: { x: 0, y: 0, w: 0, h: 0 },
     source: p,
   };
+  resolved.rest = restMatrices(resolved);
   resolved.extent = restExtent(resolved);
   return resolved;
 }
@@ -173,7 +192,7 @@ export function restMatrices(p: ResolvedPuppet): Map<string, Mat> {
 }
 
 export function restExtent(p: ResolvedPuppet): BBox {
-  const ms = restMatrices(p);
+  const ms = p.rest.size ? p.rest : restMatrices(p);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const part of p.ordered) {
     const m = ms.get(part.id)!;

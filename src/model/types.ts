@@ -25,6 +25,11 @@ export const PartSchema = z.object({
   mirrorOf: id.optional(),
   /** Pendulum looseness, 0..1, for hanging things. */
   swing: z.number().min(0).max(1).optional(),
+  /** Control rod attached here, in this part's frame. The rod drives this
+   *  part and every part between it and the root (the hand rod moves the
+   *  whole arm). The root part always has a main rod at its pivot; give the
+   *  root a `rod` to move that attachment. */
+  rod: VecSchema.optional(),
 });
 
 export const PuppetSchema = z.object({

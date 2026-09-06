@@ -46,7 +46,22 @@ separate rig or actor layer.
 
 **Part fields.** `id`, `parent`, `pivot`, `z`, `path`, `note`. Optional:
 `mirrorOf` (reflect another part instead of drawing one), `swing` (pendulum
-amplitude, for hanging things).
+amplitude, for hanging things), `rod` (a control rod attaches here).
+
+**Rods.** Every puppet hangs from a main rod at its root pivot. A part with
+`rod: [x, y]` carries a thinner hand rod attached at that point in its own
+frame, and that rod is understood to drive the whole chain from the part up to
+the root: a rod at the hand moves the arm, the elbow is passive. Parts with no
+rod anywhere below them are *unheld* — nothing on stage can move them on
+purpose, so keyed motion on them reads as passive swing. That is fine during a
+walk and wrong from a standstill; the harness flags the second case. This is the
+wayang convention: one main rod, a wire per hand, legs and tail left to gravity.
+
+The agent decides where rods attach, as it decides pivots. The authoring rule
+goes in the `edit_cast` tool description and the persona: give a hand rod to
+every part the play will move deliberately while the puppet stands still, and
+to nothing else. The unheld-motion check should be part of `read_play`'s derived
+geometry (§3.2) so an agent that keys a lift on an unrodded arm is told.
 
 **Props are parts.** A lantern is a part parented to the head. Passing one
 between puppets is a `remove` and an `insert` in the same call.

@@ -44,6 +44,16 @@ export interface FramePart {
   angle: number;
   world: Mat;
 }
+/** A control rod in stage pixels, from its attachment on the part to the
+ *  puppeteer's hand below the stage. */
+export interface FrameRod {
+  part: ResolvedPart;
+  /** Main rod (holds the root) as opposed to a hand wire. */
+  main: boolean;
+  x1: number; y1: number;
+  x2: number; y2: number;
+  width: number;
+}
 export interface FramePuppet {
   puppet: ResolvedPuppet;
   plane: Plane;
@@ -52,6 +62,7 @@ export interface FramePuppet {
   rootState: RootState;
   /** Sorted for painting: z ascending, tree order on ties. */
   parts: FramePart[];
+  rods: FrameRod[];
 }
 export interface Frame {
   t: number;
@@ -76,6 +87,12 @@ const BOB_PX = 0.0035 * STAGE_H;
 const GRAVITY = 2400; // px/s²
 const SIM_DT = 1 / 240;
 const SCENE_DIP_BEATS = 0.45; // lamp dips across scene boundaries (C6)
+// Rods. A rod is held at a fixed point below the stage — directly under where
+// its attachment sits at rest — so it stands vertical at rest and tilts as the
+// hand moves. Widths are in stage pixels for a 100-unit puppet at scale 1.
+export const ROD_REACH = 0.4 * STAGE_H; // hand-hold depth below the stage floor
+const ROD_W_MAIN = 2.2;
+const ROD_W_HAND = 1.0;
 
 interface Pendulum {
   t: number;
@@ -115,12 +132,23 @@ export class Evaluator {
       parts.sort((a, b) => a.part.z - b.part.z || a.part.order - b.part.order);
       puppets.push({
         puppet, plane: rig.rootState.plane, opacity: PLANES[rig.rootState.plane].opacity * puppet.opacity,
-        root: rig.root, rootState: rig.rootState, parts,
+        root: rig.root, rootState: rig.rootState, parts, rods: this.rods(puppet, rig),
       });
       void id;
     }
     puppets.sort((a, b) => PLANE_ORDER.indexOf(a.plane) - PLANE_ORDER.indexOf(b.plane));
     return { t, beat, lamp: this.lamp(beat), span: spanAt(this.tl, beat), puppets };
+  }
+
+  private rods(puppet: ResolvedPuppet, rig: Rig): FrameRod[] {
+    const px = magnitude(rig.root) * puppet.unit / 100;
+    return puppet.rods.map((part) => {
+      const at = part.rod!;
+      const [x1, y1] = apply(rig.world.get(part.id)!, at);
+      const [hx] = apply(rig.root, apply(puppet.rest.get(part.id)!, at));
+      const main = part.depth === 0;
+      return { part, main, x1, y1, x2: hx, y2: STAGE_H + ROD_REACH, width: (main ? ROD_W_MAIN : ROD_W_HAND) * px };
+    });
   }
 
   private lamp(beat: number): number {

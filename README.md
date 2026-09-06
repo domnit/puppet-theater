@@ -9,7 +9,7 @@ Spec: [notes/spec.md](notes/spec.md). Reasoning: [notes/spec-scratch.md](notes/s
 bun install
 bun run dev        # harness at http://localhost:4200
 bun run check      # tsc
-bun scripts/snapshot.ts fixtures/plays/00-showcase.json 1.9 5.3 7.8 9.8   # stills → out/
+bun scripts/snapshot.ts fixtures/plays/00-showcase.json 1.9 5.3 7.8 9.8   # stills → out/  (--no-rods, --no-hand-rods)
 ```
 
 The harness loads a play from `fixtures/plays/`, embeds any cast entry given as
@@ -21,10 +21,13 @@ time position is kept).
   scrub, home/end.
 - **One puppet**: a cast member alone, at rest, centred, procedural layers off.
 - **Layers**: idle (breath, sway, joint drift), follow-through, swing
-  (pendulum), control rods. Toggle each to see what it contributes.
+  (pendulum), main rods, hand rods. Toggle each to see what it contributes.
 - **Overlays**: pivots and local axes, part boundaries, computed bounding
   boxes, cap discs. The cast panel lists the part tree with live angles; click
-  a part there or on the stage to select it.
+  a part there or on the stage to select it. Each part is tagged with what
+  holds it (`main rod`, `rod`, `via <hand>`), and a part that is keyed more than
+  12° while the root stands still with nothing holding it gets an `unheld`
+  warning — that motion has no visible cause.
 
 ### Layout
 
@@ -58,3 +61,9 @@ fixtures/plays/        six failure-mode fixtures (spec §6.1) and a showcase
 - Swing parts hang from world-down and are driven by their pivot's motion. The
   pendulum is a fixed-step simulation from t=0 with one-second checkpoints, so
   scrubbing is deterministic.
+- Rods: the root always has a main rod at its pivot; a part with `rod: [x, y]`
+  has a hand rod attached there, half the main rod's width, that drives the
+  chain from that part to the root. Every rod is held at a fixed point below the
+  stage, directly under where its attachment sits at rest, so it stands vertical
+  at rest and tilts as the hand moves. Rods are drawn a little softer and
+  lighter than the figure, since they are held behind it.

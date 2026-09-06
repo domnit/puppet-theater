@@ -1,7 +1,8 @@
 // Milestone 0 harness: load fixture JSON from disk, play it, scrub it, step
 // it, isolate one puppet, and toggle debug overlays. Reloads on file change.
 
-import { Evaluator, STAGE_H, UNIT_FRACTION, type EvalOptions, type Frame } from "../engine/evaluate";
+import { Evaluator, STAGE_H, STAGE_W, UNIT_FRACTION, type EvalOptions, type Frame } from "../engine/evaluate";
+import { wrap180 } from "../engine/math";
 import { PuppetError, resolvePuppet, type ResolvedPuppet } from "../model/puppet";
 import { PlaySchema, formatIssues, type Play } from "../model/types";
 import { Stage, type OverlayOptions } from "../render/stage";
@@ -14,7 +15,7 @@ interface Persisted {
   t: number;
   view: "stage" | "puppet";
   puppetId: string | null;
-  layers: EvalOptions & { rods: boolean };
+  layers: EvalOptions & { rods: boolean; handRods: boolean };
   overlays: OverlayOptions;
   selected: { puppet: string; part: string } | null;
 }
@@ -31,7 +32,7 @@ const state = {
   lastTick: 0,
   view: "stage" as "stage" | "puppet",
   puppetId: null as string | null,
-  layers: { idle: true, followThrough: true, swing: true, rods: true },
+  layers: { idle: true, followThrough: true, swing: true, rods: true, handRods: true },
   overlays: { pivots: false, bounds: false, bboxes: false, caps: false } as OverlayOptions,
   selected: null as { puppet: string; part: string } | null,
   lastFrame: null as Frame | null,
@@ -254,6 +255,26 @@ function renderPlayInfo() {
     </dl>`;
 }
 
+/** Largest keyed step of each joint between consecutive keys while the root
+ *  stands still, degrees. A limb swinging during a walk is read as passive; the
+ *  same swing from a standstill needs something holding it. */
+const UNHELD_WARN_DEG = 12;
+const STILL_PX = 4;
+function stillKeyedRange(puppetId: string): Map<string, number> {
+  const out = new Map<string, number>();
+  const keys = state.stageEval?.tl.tracks.get(puppetId) ?? [];
+  for (let i = 1; i < keys.length; i++) {
+    const a = keys[i - 1], b = keys[i];
+    const moved = Math.abs(b.root.x - a.root.x) * STAGE_W + Math.abs(b.root.y - a.root.y) * STAGE_H;
+    if (moved > STILL_PX) continue;
+    for (const j of new Set([...Object.keys(a.joints), ...Object.keys(b.joints)])) {
+      const d = Math.abs(wrap180((b.joints[j] ?? 0) - (a.joints[j] ?? 0)));
+      if (d > (out.get(j) ?? 0)) out.set(j, d);
+    }
+  }
+  return out;
+}
+
 function renderTree(frame: Frame) {
   const ev = activeEval();
   if (!ev) { $("#tree").innerHTML = ""; return; }
@@ -265,12 +286,17 @@ function renderTree(frame: Frame) {
     const ext = p.extent;
     html += `<div class="puppet"><div class="head">${esc(p.name)} <small>· ${p.id} · unit ${p.unit} · cap ${p.cap} · extent ${ext.w.toFixed(0)}×${ext.h.toFixed(0)}${a ? "" : " · off stage"}</small></div>`;
     if (p.note) html += `<div class="pnote">${esc(p.note)}</div>`;
+    const range = stillKeyedRange(p.id);
     for (const part of p.ordered) {
       const sel = state.selected && state.selected.puppet === p.id && state.selected.part === part.id;
+      const held = part.drivenBy.length > 0;
+      const moved = range.get(part.id) ?? 0;
       const tags = [
         part.mirrored ? `↔ ${part.mirrorOf}` : part.mirrorOf ? `↔ ${part.mirrorOf} (overridden)` : "",
         part.swing ? `swing ${part.swing}` : "",
-      ].filter(Boolean).map((t) => `<span class="tag">${esc(t)}</span>`).join("");
+        part.rod ? (part.depth === 0 ? "main rod" : "rod") : held ? `via ${part.drivenBy.join(", ")}` : "",
+      ].filter(Boolean).map((t) => `<span class="tag">${esc(t)}</span>`).join("")
+        + (!held && moved > UNHELD_WARN_DEG ? `<span class="tag warn" title="keyed ${moved.toFixed(0)}° from a standstill with no rod holding it — who moves it?">unheld · ${moved.toFixed(0)}° from still</span>` : "");
       const ang = a?.get(part.id);
       html += `<div class="part${sel ? " sel" : ""}" data-puppet="${p.id}" data-part="${part.id}" style="padding-left:${6 + part.depth * 14}px">
         <span class="id">${esc(part.id)}${tags}</span><span class="ang">${ang === undefined ? "" : ang.toFixed(1) + "°"}</span></div>`;
@@ -310,6 +336,7 @@ function renderDetail(frame: Frame) {
       <dt>now</dt><dd>${live ? live.angle.toFixed(2) + "°" : "—"}</dd>
       <dt>bbox</dt><dd>${b.x.toFixed(1)}, ${b.y.toFixed(1)} · ${b.w.toFixed(1)}×${b.h.toFixed(1)}</dd>
       ${part.swing ? `<dt>swing</dt><dd>${part.swing}</dd>` : ""}
+      <dt>rod</dt><dd>${part.rod ? `at ${part.rod[0]}, ${part.rod[1]}${part.depth === 0 ? " (main)" : ""}` : part.drivenBy.length ? `held via ${part.drivenBy.join(", ")}` : "none — unheld, can only swing"}</dd>
       ${part.mirrorOf ? `<dt>mirrorOf</dt><dd>${part.mirrorOf}${part.mirrored ? "" : " (own path wins)"}</dd>` : ""}
     </dl>
     <div><code>${esc(part.d)}</code></div>`;
@@ -326,7 +353,7 @@ function render() {
   if (!ev) return;
   const frame = ev.frame(state.t);
   state.lastFrame = frame;
-  stage.draw(frame, { rods: state.layers.rods, overlays: state.overlays, selected: state.selected });
+  stage.draw(frame, { rods: state.layers.rods, handRods: state.layers.handRods, overlays: state.overlays, selected: state.selected });
   const d = duration();
   $<HTMLInputElement>("#scrub").value = String(d > 0 ? Math.round((state.t / d) * 10000) : 0);
   $("#time").textContent = `${state.t.toFixed(2)} s`;

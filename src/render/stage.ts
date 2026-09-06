@@ -4,7 +4,7 @@
 import type { ResolvedPuppet } from "../model/puppet";
 import { STAGE_H, STAGE_W, type Frame, type FramePart, type FramePuppet } from "../engine/evaluate";
 import { apply, magnitude, matToString, type Mat } from "../engine/math";
-import { INK, stageBackdrop, stageDefs, stageForeground } from "./markup";
+import { INK, ROD_OPACITY, stageBackdrop, stageDefs, stageForeground } from "./markup";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -15,7 +15,10 @@ export interface OverlayOptions {
   caps: boolean;
 }
 export interface DrawOptions {
+  /** Main rods. */
   rods: boolean;
+  /** Hand rods (needs `rods`). */
+  handRods: boolean;
   overlays: OverlayOptions;
   selected?: { puppet: string; part: string } | null;
 }
@@ -33,7 +36,8 @@ function el<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, 
 
 interface PuppetNodes {
   group: SVGGElement;
-  rod: SVGLineElement;
+  rods: SVGGElement;
+  rod: Map<string, SVGLineElement>;
   parts: Map<string, { group: SVGGElement; path: SVGPathElement; cap: SVGCircleElement }>;
 }
 
@@ -74,8 +78,14 @@ export class Stage {
     this.nodes.clear();
     for (const p of puppets) {
       const group = el("g", { class: "puppet", "data-id": p.id });
-      const rod = el("line", { class: "rod", stroke: INK, "stroke-linecap": "round" });
-      group.appendChild(rod);
+      const rods = el("g", { class: "rods", filter: "url(#blur-rod)", opacity: ROD_OPACITY });
+      group.appendChild(rods);
+      const rod = new Map<string, SVGLineElement>();
+      for (const r of p.rods) {
+        const line = el("line", { class: "rod", "data-rod": r.id, stroke: INK, "stroke-linecap": "round" });
+        rods.appendChild(line);
+        rod.set(r.id, line);
+      }
       const parts = new Map<string, { group: SVGGElement; path: SVGPathElement; cap: SVGCircleElement }>();
       for (const part of p.ordered) {
         const pg = el("g", { class: "part", "data-part": part.id });
@@ -90,7 +100,7 @@ export class Stage {
           pg.appendChild(title);
         }
       }
-      this.nodes.set(p.id, { group, rod, parts });
+      this.nodes.set(p.id, { group, rods, rod, parts });
     }
   }
 
@@ -106,15 +116,15 @@ export class Stage {
       n.group.setAttribute("opacity", String(fp.opacity));
       n.group.style.display = "";
       this.cast.appendChild(n.group);
-      // rod: from the root pivot straight down off the stage
-      if (opts.rods) {
-        const [rx, ry] = apply(fp.root, [0, 0]);
-        n.rod.setAttribute("x1", String(rx)); n.rod.setAttribute("y1", String(ry));
-        n.rod.setAttribute("x2", String(rx)); n.rod.setAttribute("y2", String(STAGE_H + 10));
-        n.rod.setAttribute("stroke-width", String(2.2 * magnitude(fp.root) * fp.puppet.unit / 100));
-        n.rod.style.display = "";
-      } else {
-        n.rod.style.display = "none";
+      // rods: from each attachment to the puppeteer's hand below the stage
+      for (const r of fp.rods) {
+        const line = n.rod.get(r.part.id)!;
+        const on = r.main ? opts.rods : opts.rods && opts.handRods;
+        line.style.display = on ? "" : "none";
+        if (!on) continue;
+        line.setAttribute("x1", r.x1.toFixed(2)); line.setAttribute("y1", r.y1.toFixed(2));
+        line.setAttribute("x2", r.x2.toFixed(2)); line.setAttribute("y2", r.y2.toFixed(2));
+        line.setAttribute("stroke-width", r.width.toFixed(2));
       }
       for (const part of fp.parts) {
         const pn = n.parts.get(part.part.id)!;
