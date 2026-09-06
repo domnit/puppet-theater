@@ -4,8 +4,9 @@
 // nowhere. Keep them accurate: if the implementation diverges, fix the
 // implementation.
 
-export const CREATE_PLAY = `Create a new, empty play and return its id and URL. The stage at that URL shows
-a lit, empty scrim until you add a cast and scenes; every later edit appears
+export const CREATE_PLAY = `Create a new, empty play and return its id and URL. Give it a \`title\` now — a
+short name for what it will show — rather than leaving it untitled. The stage at
+that URL shows a lit, empty scrim until you add a cast and scenes; every later edit appears
 there live, so build in several calls rather than one — cast first (edit_cast),
 then a scene at a time (edit_scene) — and the stage assembles while people watch.
 

@@ -502,8 +502,14 @@ somewhere specific.
 
 ### 5.6 Chat affordance
 
-One button in the lower corner. It pulses gently until first clicked, then never
-again; the state lives in `localStorage`.
+One button in the lower corner — a pencil, no label. It pulses gently until
+first clicked, then never again; the state lives in `localStorage`. The panel
+opens on a single line, the MCP URL or type below, and closes on a click
+anywhere else. What the chat can do is discovered by using it. The chat
+announces every commit to the page: another play takes the stage, the play
+already on stage replays from the top. One tool exists in the chat and not
+over MCP — `show_play`, which puts a play the visitor asked for on stage; it
+moves the page rather than the document, so §4.6 does not apply to it.
 
 This is the only onboarding in the product. There are no suggested prompts, so
 the chat's habit of answering a request and offering one thing deeper is the

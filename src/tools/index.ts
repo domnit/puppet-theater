@@ -1,6 +1,8 @@
 // The six tools of spec §3.1 as plain functions over the store. The MCP server
-// and (from Milestone 5) the in-app chat both register from TOOLS, so a tool
-// cannot exist in one client and not the other (§4.6).
+// and (from Milestone 5) the in-app chat both register from TOOLS, so a domain
+// tool cannot exist in one client and not the other (§4.6). The chat's own
+// `show_play` (src/server/chat.ts) is not one of these: it moves the page, and
+// an MCP caller has the URL.
 //
 // An edit call is one atomic batch: the edits are applied to a clone, the
 // result is validated once, and only then is a version committed. A batch that

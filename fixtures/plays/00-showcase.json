@@ -31,7 +31,7 @@
           "fox": [ { "at": 0, "pose": { "joints": { "leg_fl": 20, "shin_fl": 45, "leg_fr": -25, "shin_fr": 20, "leg_bl": -20, "shin_bl": 35, "leg_br": 22, "shin_br": 10, "tail": -6 }, "root": { "x": 0.81 } } },
                    { "at": 1, "ease": "out", "pose": { "joints": { "leg_fl": 2, "shin_fl": 0, "leg_fr": -6, "shin_fr": 4, "leg_bl": -4, "shin_bl": 6, "leg_br": 6, "shin_br": 2, "tail": 2, "head": -16 }, "root": { "x": 0.78 } } } ] } },
         { "id": "b8", "label": "they see each other", "length": 2, "tracks": {
-          "fox": [ { "at": 0.8, "ease": "inOut", "pose": { "joints": { "ear_l": -20, "tail": 16 } } },
+          "fox": [ { "at": 0.8, "ease": "inOut", "pose": { "joints": { "ear_l": -10, "tail": 16 } } },
                    { "at": 1.6, "ease": "out", "pose": { "joints": { "ear_l": -4 } } } ] } }
       ]
     },

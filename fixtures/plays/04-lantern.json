@@ -1,7 +1,7 @@
 {
   "id": "fx-lantern",
   "schemaVersion": 1,
-  "title": "A lantern in hand — pendulum through a hand pivot",
+  "title": "Along the Cliff Path",
   "meta": { "exercises": "a swinging prop parented to the hand: it hangs straight down through the walk, swings when the arm is raised fast, and settles" },
   "stage": { "tempo": 96 },
   "cast": { "keeper": "puppets/keeper-lantern.json" },

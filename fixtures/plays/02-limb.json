@@ -1,7 +1,7 @@
 {
   "id": "fx-limb",
   "schemaVersion": 1,
-  "title": "A fast, wide arm — seams, shortest arc, follow-through",
+  "title": "The Keeper Waves",
   "meta": { "exercises": "155° raise in one beat, snap down, then a 170→-170 key that must take the 20° route through 180" },
   "stage": { "tempo": 80 },
   "cast": { "keeper": "puppets/keeper.json" },
@@ -26,7 +26,7 @@
             ]
           }
         },
-        { "id": "b3", "label": "wrap: 170 to -170", "length": 3,
+        { "id": "b3", "label": "round again", "length": 3,
           "tracks": {
             "keeper": [
               { "at": 0, "ease": "inOut", "pose": { "joints": { "arm_near": 170, "farm_near": 0 } } },

@@ -167,8 +167,16 @@ describe("derived geometry", () => {
 });
 
 describe("unheld motion warnings", () => {
-  test("04-lantern warns only about the head, keyed 18° from a standstill", async () => {
+  test("04-lantern: everything the keeper moves from a standstill is held, so nothing warns", async () => {
     const play = await loadPlay("fixtures/plays/04-lantern.json");
+    const out = readPlay(play, { sel: "cast.keeper" }) as any;
+    expect(out.warnings).toEqual([]);
+  });
+
+  test("04-lantern without the head rod warns about the head, keyed 18° from a standstill", async () => {
+    const play = await loadPlay("fixtures/plays/04-lantern.json");
+    const head = play.cast.keeper.parts.find((p) => p.id === "head")!;
+    delete (head as { rod?: unknown }).rod;
     const out = readPlay(play, { sel: "cast.keeper" }) as any;
     expect(out.warnings).toEqual(["head: keyed 18° from a standstill with nothing holding it — add a rod or let it swing"]);
   });

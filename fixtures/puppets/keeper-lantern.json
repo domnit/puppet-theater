@@ -38,7 +38,7 @@
         -1
       ],
       "z": 2,
-      "note": "neck, skull and a blunt nose forward; drawn upward from the neck base",
+      "rod": [-4, -15], "note": "neck, skull and a blunt nose forward; drawn upward from the neck base; the head rod attaches at the back of the skull at [-4,-15]",
       "path": "M -4,0 L -4,-5 C -8,-8 -9,-14 -8,-19 C -6,-25 3,-27 8,-23 C 11,-20 12,-16 11,-13 L 13,-10 L 10,-9 C 10,-6 8,-4 5,-4 L 4,0 Z"
     },
     {

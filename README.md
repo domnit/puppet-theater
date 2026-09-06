@@ -219,15 +219,22 @@ featured it shows the empty lit scrim. The old index of plays moved to `/plays`.
 The plays are featured with `POST /admin/featured` (Basic auth, the seeded
 admin), and `bun scripts/seed.ts` features the showcase.
 
-One button in the lower-right corner opens the chat. It pulses until first
-clicked and never again (`localStorage`). A visitor types once and the stage
-assembles: `POST /chat` runs the Anthropic SDK's tool runner in process over
-the same `TOOLS` the MCP server registers (spec §4.6 — nothing exists in one
-client and not the other), acting as `public`, so it can only make and edit
-open plays. The reply streams as prose; the edits reach the page over the
-play's own `/p/:id/events` feed, the same as they would for any other viewer.
-When the chat creates a play, the page switches to it and the URL becomes
-`/p/:id`, so the visitor can share what they made. Clicking a part on stage
+A pencil in the lower-right corner opens the chat. It pulses until first
+clicked and never again (`localStorage`). The panel opens on one line — the
+MCP URL, or type below — and closes on Escape or a click anywhere else. A
+visitor types once and the stage assembles: `POST /chat` runs the Anthropic
+SDK's tool runner in process over the same `TOOLS` the MCP server registers
+(spec §4.6 — nothing exists in one client and not the other) plus one tool of
+the page's own, `show_play`, which puts an existing play on stage; it acts as
+`public`, so it can only make and edit open plays. The reply streams as prose;
+the edits reach the page over the play's own `/p/:id/events` feed, the same as
+they would for any other viewer. Every commit the chat makes is announced to
+the page: a commit on another play switches the page to it (the URL becomes
+`/p/:id`, so the visitor can share what they made), and a commit on the play
+already on stage replays it from the top with the change in it — a landing
+pick the visitor edits becomes their live page the same way. The conversation
+is the transcript on screen: a page load starts a new session, so the server
+never continues a chat the visitor cannot see. Clicking a part on stage
 prefixes the input with `[puppet / part]`, which the model reads as pointing.
 
 The system prompt (`src/server/prompt.ts`) is short and plain on purpose: it
@@ -241,16 +248,18 @@ instruction, since anyone can write it.
 
 `POST /chat` with `{ session?, message, play_id?, landing? }` answers
 `text/event-stream` in every case but a malformed request: `session {id}` first,
-then `text {delta}` frames, `play {play_id}` when the page should show a play
-the turn created, and `done {}` — or `dark {text}`, a written failure state in
-place of an error. The session lives in server memory (two hours idle).
+then `text {delta}` frames, `play {play_id}` for every commit and every
+`show_play` (the page shows that play, replaying it from the top if it is the
+one on stage), and `done {}` — or `dark {text}`, a written failure state in
+place of an error. The session lives in server memory (two hours idle); the
+page keeps its id in memory only, so a reload starts a new one.
 
 ### Spend
 
 | Env | Default | What |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | unset: the chat is dark |
-| `PUPPET_CHAT_MODEL` | `claude-sonnet-5` | adaptive thinking, low effort, one cache breakpoint after the system prompt |
+| `PUPPET_CHAT_MODEL` | `claude-sonnet-5` | adaptive thinking and low effort where the model takes them (Claude 4.6 and later; older ids such as `claude-haiku-4-5` get a plain request), one cache breakpoint after the system prompt |
 | `PUPPET_CHAT_DAILY_USD` | `5` | daily ceiling, from a rate table in `src/server/spend.ts` fed by each response's `usage` |
 | `PUPPET_CHAT_PER_IP` | `30` | messages an hour per address |
 | `PUPPET_CHAT_PER_SESSION` | `40` | messages per session |

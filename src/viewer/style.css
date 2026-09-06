@@ -158,38 +158,41 @@ svg.stage {
   white-space: nowrap;
 }
 
-/* The one button, in the 88px the controls bar leaves clear. It is not a
-   playback control, so it does not fade with them. */
+/* The one button, in the 88px the controls bar leaves clear: a pencil, no
+   label — the panel it opens says the rest. It is not a playback control, so
+   it does not fade with them. */
 #chat-open {
   position: fixed;
   z-index: 4;
   right: var(--gutter);
-  bottom: 17px;
-  padding: 4px 2px;
+  bottom: 16px;
+  padding: 6px;
   border: 0;
-  border-bottom: 1px solid var(--hair);
   background: none;
   color: var(--bone-dim);
-  font-family: var(--serif);
-  font-size: 13px;
-  font-variant: small-caps;
-  letter-spacing: 0.13em;
-  text-shadow: 0 1px 2px rgba(11, 7, 5, 0.6);
+  line-height: 0;
+  filter: drop-shadow(0 1px 2px rgba(11, 7, 5, 0.6));
   cursor: pointer;
 }
-#chat-open:hover, #chat-open:focus-visible {
+#chat-open svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+#chat-open:hover, #chat-open:focus-visible, #chat-open[aria-expanded="true"] {
   color: var(--bone);
-  border-bottom-color: var(--hair-lit);
   outline: none;
 }
 /* Pulses until the first click, ever — the only onboarding in the product. */
 #chat-open.pulse { animation: chat-pulse 3.8s ease-in-out infinite; }
 @keyframes chat-pulse {
-  0%, 100% { color: var(--bone-dim); border-bottom-color: var(--hair); }
-  45%      { color: #f4e6c6; border-bottom-color: var(--ochre); }
+  0%, 100% { color: var(--bone-dim); }
+  45%      { color: var(--ochre); }
 }
 @media (prefers-reduced-motion: reduce) {
-  #chat-open.pulse { animation: none; color: var(--bone); border-bottom-color: var(--ochre); }
+  #chat-open.pulse { animation: none; color: var(--ochre); }
 }
 
 /* Anchored above the button and kept off the centre of the stage. */
@@ -207,17 +210,6 @@ svg.stage {
   color: var(--bone);
 }
 #chat[hidden] { display: none; }
-
-#chat-head {
-  flex: none;
-  margin: 0;
-  padding: 9px 13px 8px;
-  border-bottom: 1px solid var(--hair);
-  font-size: 12px;
-  font-variant: small-caps;
-  letter-spacing: 0.13em;
-  color: var(--bone-dim);
-}
 
 #chat-log {
   flex: 1 1 auto;
@@ -244,6 +236,13 @@ svg.stage {
 #chat-log .them { color: var(--bone); }
 #chat-log .wait { color: rgba(233, 217, 180, 0.3); letter-spacing: 0.3em; }
 #chat-log .dark, #chat-log .empty { color: rgba(233, 217, 180, 0.42); font-style: italic; }
+#chat-log .empty code {
+  font: inherit;
+  font-style: normal;
+  color: var(--bone-dim);
+  user-select: all;
+  overflow-wrap: anywhere;
+}
 
 #chat-form {
   flex: none;

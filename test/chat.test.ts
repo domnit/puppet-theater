@@ -29,6 +29,8 @@ interface Fake {
   calls: Call[];
   /** Set to 500 to make every further request fail. */
   status: number;
+  /** What the fake answers a plain user turn with; `create_play` by default. */
+  toolTurn: { event: string; data: unknown }[];
   stop(): void;
 }
 
@@ -80,9 +82,17 @@ const TEXT_TURN = turn(
   "end_turn",
 );
 
+/** A turn calling `name` with `input`, the way the model would. */
+function toolTurn(name: string, input: unknown): { event: string; data: unknown }[] {
+  return turn(
+    [{ start: { type: "tool_use", id: "toolu_fake", name, input: {} }, deltas: [{ type: "input_json_delta", partial_json: JSON.stringify(input) }] }],
+    "tool_use",
+  );
+}
+
 function startFake(): Fake {
   const calls: Call[] = [];
-  const state = { status: 200 };
+  const state = { status: 200, toolTurn: TOOL_TURN };
   const server = Bun.serve({
     port: 0,
     async fetch(req) {
@@ -94,7 +104,7 @@ function startFake(): Fake {
       }
       const last = body.messages[body.messages.length - 1];
       const answering = Array.isArray(last?.content) && last.content.some((b) => (b as { type?: string }).type === "tool_result");
-      return sse(answering ? TEXT_TURN : TOOL_TURN);
+      return sse(answering ? TEXT_TURN : state.toolTurn);
     },
   });
   return {
@@ -105,6 +115,12 @@ function startFake(): Fake {
     },
     set status(v: number) {
       state.status = v;
+    },
+    get toolTurn() {
+      return state.toolTurn;
+    },
+    set toolTurn(v) {
+      state.toolTurn = v;
     },
     stop() {
       server.stop(true);
@@ -219,11 +235,11 @@ describe("a turn", () => {
     expect(spend.cacheReadTokens).toBe(10);
   });
 
-  test("sends only the six tools, with the system prompt cached", async () => {
+  test("sends the six tools and the page's show_play, with the system prompt cached", async () => {
     const { fake, chat } = rig();
     await frames(await say(chat, { message: "hello" }));
     const names = (fake.calls[0].tools ?? []).map((t) => t.name).sort();
-    expect(names).toEqual(["create_play", "edit_cast", "edit_play", "edit_scene", "list_plays", "read_play"]);
+    expect(names).toEqual(["create_play", "edit_cast", "edit_play", "edit_scene", "list_plays", "read_play", "show_play"]);
     expect(fake.calls[0].tool_choice).toBeUndefined();
     expect(fake.calls[0].system).toMatchObject([{ type: "text", cache_control: { type: "ephemeral" } }]);
   });
@@ -241,6 +257,56 @@ describe("a turn", () => {
     const other = await frames(await say(chat, { message: "hello", play_id: "pl_nope" }));
     expect(other[0].event).toBe("session");
     expect(fake.calls[2].messages[0].content).toBe("hello");
+  });
+
+  test("a commit on the play already on stage is announced too, so the page can replay it", async () => {
+    const { store, fake, chat } = rig();
+    const seed = store.createPlay({ creator: "public", mode: "open", doc: { id: "", schemaVersion: 1, title: "The Lamp", meta: {}, stage: { tempo: 96 }, cast: {}, scenes: [] } });
+    fake.toolTurn = toolTurn("edit_play", { play_id: seed.id, edits: [{ op: "set", sel: "title", value: "The Lamp Is Lit" }] });
+    const fs = await frames(await say(chat, { message: "rename it", play_id: seed.id }));
+    expect(only(fs, "play").map((f) => f.data.play_id)).toEqual([seed.id]);
+    expect(store.getPlay(seed.id)?.doc.title).toBe("The Lamp Is Lit");
+    expect(fs[fs.length - 1].event).toBe("done");
+  });
+
+  test("show_play puts an existing play on stage and refuses an unknown one", async () => {
+    const { store, fake, chat } = rig();
+    const seed = store.createPlay({ creator: "public", mode: "open", doc: { id: "", schemaVersion: 1, title: "The Lamp", meta: {}, stage: { tempo: 96 }, cast: {}, scenes: [] } });
+    fake.toolTurn = toolTurn("show_play", { play_id: seed.id });
+    const fs = await frames(await say(chat, { message: "open the lamp one" }));
+    expect(only(fs, "play").map((f) => f.data.play_id)).toEqual([seed.id]);
+    expect(fs[fs.length - 1].event).toBe("done");
+
+    const { fake: fake2, chat: chat2 } = rig();
+    fake2.toolTurn = toolTurn("show_play", { play_id: "pl_nope" });
+    const fs2 = await frames(await say(chat2, { message: "open something" }));
+    expect(only(fs2, "play")).toHaveLength(0);
+    expect(fs2[fs2.length - 1].event).toBe("done");
+    // The refusal went back to the model as an error result, not to the visitor.
+    const results = fake2.calls[1].messages[fake2.calls[1].messages.length - 1].content as { is_error?: boolean }[];
+    expect(results[0].is_error).toBe(true);
+  });
+
+  test("prose before a tool call and prose after it arrive as separate paragraphs", async () => {
+    const { fake, chat } = rig();
+    fake.toolTurn = turn(
+      [
+        { start: { type: "text", text: "" }, deltas: [{ type: "text_delta", text: "One moment." }] },
+        { start: { type: "tool_use", id: "toolu_fake", name: "create_play", input: {} }, deltas: [{ type: "input_json_delta", partial_json: '{"title":"A Test"}' }] },
+      ],
+      "tool_use",
+    );
+    const fs = await frames(await say(chat, { message: "stage me something" }));
+    expect(only(fs, "text").map((f) => f.data.delta).join("")).toBe("One moment.\n\nDone.");
+  });
+
+  test("a rejected edit announces nothing", async () => {
+    const { store, fake, chat } = rig();
+    const seed = store.createPlay({ creator: "public", mode: "open", doc: { id: "", schemaVersion: 1, title: "The Lamp", meta: {}, stage: { tempo: 96 }, cast: {}, scenes: [] } });
+    fake.toolTurn = toolTurn("edit_play", { play_id: seed.id, edits: [{ op: "set", sel: "nonsense.deep", value: 1 }] });
+    const fs = await frames(await say(chat, { message: "break it", play_id: seed.id }));
+    expect(only(fs, "play")).toHaveLength(0);
+    expect(fs[fs.length - 1].event).toBe("done");
   });
 
   test("a second message on the same session keeps the transcript", async () => {

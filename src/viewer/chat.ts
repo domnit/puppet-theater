@@ -13,6 +13,9 @@ import type { PartHit } from "../render/stage";
 export interface ChatHost {
   /** Show a play and start its live feed; main.ts owns the playback. */
   showPlay(id: string, opts: { live: boolean }): Promise<void>;
+  /** The chat just changed the play on stage: pick up the change and play it
+   *  again from the top. */
+  replay(): Promise<void>;
   /** The play the page is showing, if any — sent with every message. */
   currentPlayId(): string | null;
   /** True while the page is still showing the landing pick. */
@@ -29,7 +32,6 @@ export interface ChatHandle {
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 
 const SEEN_KEY = "puppet-theater:chat-seen";
-const SESSION_KEY = "puppet-theater:chat-session";
 /** Both ceilings and the kill switch render this, and so does a dead network. */
 const DARK = "The theatre is dark tonight.";
 /** A bracketed aim already at the head of the input — never stack a second. */
@@ -111,10 +113,17 @@ export function mountChat(host: ChatHost): ChatHandle {
 
   let open = false;
   let busy = false;
-  let session = readStore(sessionStorage, SESSION_KEY) ?? "";
+  // The conversation is the transcript on screen and nothing more: a page load
+  // starts a new one, so the server is never continuing a chat the visitor
+  // cannot see. (The id lives here, in memory, on purpose.)
+  let session = "";
 
   // It pulses until the first click, ever — the state outlives the session.
   if (!readStore(localStorage, SEEN_KEY)) button.classList.add("pulse");
+
+  // The other way in: the same tools over MCP, at this origin.
+  const mcp = panel.querySelector<HTMLElement>("#mcp-url");
+  if (mcp) mcp.textContent = `${location.origin}/mcp`;
 
   // ---------- the panel ----------
 
@@ -207,10 +216,7 @@ export function mountChat(host: ChatHost): ChatHandle {
       for await (const f of readFrames(r.body)) {
         if (f.event === "session") {
           const d = parseJson<{ id?: string }>(f.data);
-          if (d?.id) {
-            session = d.id;
-            writeStore(sessionStorage, SESSION_KEY, session);
-          }
+          if (d?.id) session = d.id;
         } else if (f.event === "text") {
           const d = parseJson<{ delta?: string }>(f.data);
           if (d?.delta) say(d.delta);
@@ -234,11 +240,18 @@ export function mountChat(host: ChatHost): ChatHandle {
     }
   }
 
-  /** The reply named a play: the page becomes that play's page. */
+  /**
+   * A commit landed: on the play already on stage, the page picks it up and
+   * plays from the top again; on another play, the page becomes that play's.
+   */
   async function adopt(playId: string) {
     try {
-      await host.showPlay(playId, { live: true });
-      history.replaceState(null, "", `/p/${encodeURIComponent(playId)}`);
+      if (playId === host.currentPlayId()) {
+        await host.replay();
+      } else {
+        await host.showPlay(playId, { live: true });
+        history.replaceState(null, "", `/p/${encodeURIComponent(playId)}`);
+      }
       host.onLeaveLanding();
     } catch (e) {
       console.warn("could not show the play the chat named:", e);
@@ -248,6 +261,15 @@ export function mountChat(host: ChatHost): ChatHandle {
   // ---------- wiring ----------
 
   button.addEventListener("click", () => setOpen(!open));
+
+  // A press anywhere else closes it. The stage's own click handler runs after
+  // this and reopens the panel when a puppet part was hit (see pointAt).
+  document.addEventListener("pointerdown", (e) => {
+    if (!open) return;
+    const t = e.target as Node | null;
+    if (t && (panel.contains(t) || button.contains(t))) return;
+    setOpen(false);
+  });
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();

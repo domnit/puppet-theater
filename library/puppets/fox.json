@@ -59,7 +59,7 @@
       "parent": "torso",
       "pivot": [-29, 6],
       "z": -1,
-      "note": "brush tail, drawn back and up from the rump, thick at the middle",
+      "rod": [-18, -9], "note": "brush tail, drawn back and up from the rump, thick at the middle; the tail wire attaches mid-brush at [-18,-9]",
       "path": "M 0,-3 C -6,-8 -14,-10 -22,-16 C -28,-20 -33,-17 -30,-11 C -27,-5 -18,0 -8,3 C -4,5 -1,4 0,-3 Z"
     },
     {

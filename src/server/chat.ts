@@ -9,16 +9,18 @@
 // a 200 event stream, and a failure state arrives as one `dark` frame with the
 // sentence the visitor should read.
 //
-// Frames: `session` (always first), `text` (a piece of the reply), `play` (the
-// page should show this play now), `dark` (a written failure state; the turn
-// ends there), `done` (the turn finished). Sessions live in memory only — a
+// Frames: `session` (always first), `text` (a piece of the reply), `play` (a
+// commit landed on this play: the page shows it, and plays it from the top if
+// it is already on stage), `dark` (a written failure state; the turn ends
+// there), `done` (the turn finished). Sessions live in memory only — a
 // restart forgets every conversation, which costs a visitor nothing.
 
 import Anthropic from "@anthropic-ai/sdk";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import type { BetaMessageParam } from "@anthropic-ai/sdk/resources/beta";
 import type { Store } from "../store/db";
-import { TOOLS, type ToolContext } from "../tools";
+import { z } from "zod";
+import { TOOLS, ToolError, type ToolContext } from "../tools";
 import { createLimiter } from "./limit";
 import { SYSTEM } from "./prompt";
 import { costUsd, startOfDayUtc, usageOf } from "./spend";
@@ -56,6 +58,39 @@ const IP_CAP = "Too many messages from this address; try again in an hour.";
 const SESSION_CAP = "This conversation has reached its limit; reload the page to start another.";
 const IN_FLIGHT = "The last message is still being answered.";
 const STEP_LIMIT = "Stopped after too many steps in one turn; say what to do next.";
+
+/**
+ * The page's own tool, declared by the chat and nowhere else. The six of §3.1
+ * are the domain and stay identical across clients (§4.6); this one is the
+ * chat's window onto the page — an MCP caller has the URL and needs nothing
+ * of the kind. It emits the same `play` frame a commit does.
+ */
+const SHOW_PLAY = `Put an existing play on the visitor's stage: the page navigates to it and
+plays it from the top. Use it when the visitor asks to see, open, or go to a
+play — find the id with list_plays first if they named it by title or
+description. A play you edit is shown on its own; this is only for showing one
+you did not just change.`;
+
+/**
+ * Adaptive thinking and `output_config.effort` are Claude 4.6-and-later
+ * parameters: an older model (Haiku 4.5 among them) rejects them with a 400
+ * rather than ignoring them, so they are sent only to families known to take
+ * them. An unrecognised id gets a plain request, which every model accepts.
+ */
+const ADAPTIVE_THINKING = [
+  "claude-fable-5",
+  "claude-mythos-5",
+  "claude-opus-5",
+  "claude-opus-4-8",
+  "claude-opus-4-7",
+  "claude-opus-4-6",
+  "claude-sonnet-5",
+  "claude-sonnet-4-6",
+];
+
+export function thinks(model: string): boolean {
+  return ADAPTIVE_THINKING.some((family) => model.startsWith(family));
+}
 
 const MAX_MESSAGE = 2000;
 const MAX_TOKENS = 16000;
@@ -145,17 +180,27 @@ export function createChat(opts: ChatOptions): Chat {
   }
 
   /**
-   * The six tools, wrapped so a commit also tells the page which play to show.
-   * Nothing else is declared: no server-side tool, and `tool_choice` stays auto.
+   * The six tools, wrapped so every commit also tells the page which play it
+   * landed on — the one on stage included, so the page can restart playback
+   * with the change in it. Nothing else is declared: no server-side tool, and
+   * `tool_choice` stays auto.
    */
-  function toolsFor(ask: Ask, send: Send) {
-    const announced = new Set<string>();
+  function toolsFor(send: Send) {
     const show = (id: unknown): void => {
-      if (typeof id !== "string" || !id || announced.has(id)) return;
-      announced.add(id);
-      send("play", { play_id: id });
+      if (typeof id === "string" && id) send("play", { play_id: id });
     };
-    return TOOLS.map((tool) =>
+    const showPlay = betaZodTool({
+      name: "show_play",
+      description: SHOW_PLAY,
+      inputSchema: z.object({ play_id: z.string().min(1) }),
+      run: async ({ play_id }) => {
+        const got = opts.store.getPlay(play_id);
+        if (!got) throw new ToolError(`no play ${play_id}`, 404);
+        show(got.row.id);
+        return JSON.stringify({ play_id: got.row.id, title: got.row.title, mode: got.row.mode, shown: true });
+      },
+    });
+    const domain = TOOLS.map((tool) =>
       betaZodTool({
         name: tool.name,
         description: tool.description,
@@ -166,14 +211,12 @@ export function createChat(opts: ChatOptions): Chat {
           const result = tool.run(opts.context(), args);
           const out = result as { play_id?: unknown; rejected?: unknown[] } | null;
           if (tool.name === "create_play") show(out?.play_id);
-          else if (tool.name.startsWith("edit_") && out?.rejected?.length === 0) {
-            const target = (args as { play_id?: unknown }).play_id;
-            if (target !== ask.playId) show(target);
-          }
+          else if (tool.name.startsWith("edit_") && out?.rejected?.length === 0) show((args as { play_id?: unknown }).play_id);
           return JSON.stringify(result);
         },
       }),
     );
+    return [...domain, showPlay];
   }
 
   async function run(session: Session, ask: Ask, send: Send, abort: AbortController): Promise<void> {
@@ -184,9 +227,10 @@ export function createChat(opts: ChatOptions): Chat {
         model,
         max_tokens: MAX_TOKENS,
         system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
-        thinking: { type: "adaptive" },
-        output_config: { effort: "low" },
-        tools: toolsFor(ask, send),
+        ...(thinks(model)
+          ? { thinking: { type: "adaptive" as const }, output_config: { effort: "low" as const } }
+          : {}),
+        tools: toolsFor(send),
         messages,
         max_iterations: opts.maxIterations,
         stream: true,
@@ -196,11 +240,20 @@ export function createChat(opts: ChatOptions): Chat {
 
     let iterations = 0;
     let stopReason: string | null = null;
+    // Prose before a tool call and prose after it are separate paragraphs on
+    // the page, not one run-on sentence.
+    let spoke = false;
     for await (const stream of runner) {
       iterations++;
+      let spokeHere = false;
       for await (const ev of stream) {
-        if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") send("text", { delta: ev.delta.text });
+        if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+          if (spoke && !spokeHere) send("text", { delta: "\n\n" });
+          spokeHere = true;
+          send("text", { delta: ev.delta.text });
+        }
       }
+      spoke ||= spokeHere;
       const msg = await stream.finalMessage();
       stopReason = msg.stop_reason;
       const usage = usageOf(msg);

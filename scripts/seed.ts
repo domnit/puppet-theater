@@ -5,7 +5,9 @@
 // Idempotent: a fixture whose title already exists as a play by `author` is
 // skipped, and the `author` admin user is created only once (secret from
 // PUPPET_ADMIN_SECRET when set, so a fixed secret can be scripted). Each
-// fixtures/plays/*.json becomes a closed play owned by `author`, embedding
+// fixtures/plays/*.json becomes a closed play owned by `author` — except one
+// whose `meta.harnessOnly` is true, a renderer diagnostic that is not a play to
+// show anyone — embedding
 // cast entries given as paths the way test/helpers.ts does; 00-showcase is
 // marked featured. If the library has a `heron`, also seeds one open play
 // whose cast is an import of `lib.heron`, via applyEdits and the same
@@ -65,6 +67,10 @@ const fixtureFiles = readdirSync(path.join(root, "fixtures/plays"))
 for (const file of fixtureFiles) {
   const doc = await loadFixturePlay(file);
   const title = doc.title ?? doc.id;
+  if (doc.meta?.harnessOnly === true) {
+    console.log(`skip '${title}' (harness only)`); // a diagnostic, not a play to show
+    continue;
+  }
   if (existingTitles.has(title)) {
     console.log(`skip '${title}' (already seeded)`);
     continue;

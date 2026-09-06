@@ -1,7 +1,7 @@
 {
   "id": "fx-mirror",
   "schemaVersion": 1,
-  "title": "Two foxes — a mirrored ear, and one overridden",
+  "title": "Two Foxes",
   "meta": { "exercises": "ear_r is mirrorOf ear_l on the left fox; on the right fox ear_r keeps mirrorOf but carries its own torn path, which wins" },
   "stage": { "tempo": 72 },
   "cast": { "fox": "puppets/fox.json", "torn": "puppets/fox-torn.json" },
@@ -11,10 +11,10 @@
         { "id": "b1", "label": "they look at each other", "length": 3,
           "tracks": {
             "fox":  [ { "at": 0, "pose": { "joints": { "head": -4 }, "root": { "x": 0.33, "y": 0.72, "scale": 0.62, "facing": 1, "plane": "mid" } } },
-                      { "at": 1.5, "ease": "inOut", "pose": { "joints": { "head": 8, "ear_l": -18 } } },
+                      { "at": 1.5, "ease": "inOut", "pose": { "joints": { "head": 8, "ear_l": -10 } } },
                       { "at": 2.5, "ease": "out", "pose": { "joints": { "ear_l": -4 } } } ],
             "torn": [ { "at": 0, "pose": { "joints": { "head": -4 }, "root": { "x": 0.67, "y": 0.72, "scale": 0.62, "facing": -1, "plane": "mid" } } },
-                      { "at": 1, "ease": "inOut", "pose": { "joints": { "head": 6, "ear_r": 16 } } },
+                      { "at": 1, "ease": "inOut", "pose": { "joints": { "head": 6, "ear_r": 10 } } },
                       { "at": 2.2, "ease": "out", "pose": { "joints": { "ear_r": 4 } } } ]
           }
         },

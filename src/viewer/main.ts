@@ -133,6 +133,20 @@ function present(got: Fetched, live: boolean) {
   if (live) connect();
 }
 
+/**
+ * The chat committed to the play on stage. Fetch the head — the feed carries
+ * the same change, but the landing page opens no feed, and on a live page the
+ * fetch is what makes the restart certain to show the new version — open the
+ * feed if this page had none, and play from the top again.
+ */
+async function replay(): Promise<void> {
+  if (!feed) connect(); // a landing pick the visitor has now edited is theirs
+  await refetch();
+  state.t = 0;
+  setPlaying(true);
+  render();
+}
+
 function resolveCast(play: Play): Map<string, ResolvedPuppet> {
   const out = new Map<string, ResolvedPuppet>();
   for (const [id, p] of Object.entries(play.cast)) {
@@ -408,6 +422,7 @@ function connect() {
 
 const chat = mountChat({
   showPlay,
+  replay,
   currentPlayId: () => state.playId || null,
   isLanding: () => landing,
   onLeaveLanding: () => {
