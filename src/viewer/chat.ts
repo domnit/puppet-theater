@@ -136,7 +136,11 @@ export function mountChat(host: ChatHost): ChatHandle {
     if (on) {
       button.classList.remove("pulse");
       writeStore(localStorage, SEEN_KEY, "1");
-      input.focus();
+      // Now that the panel measures, take the height any text set while it was
+      // closed — an aim prefix arrives that way.
+      autosize();
+      // A reply in flight owns the input; setBusy hands focus back at the end.
+      if (!busy) input.focus();
       scrollDown();
     }
   }
@@ -146,6 +150,11 @@ export function mountChat(host: ChatHost): ChatHandle {
   }
 
   function autosize() {
+    // A closed panel is display:none and measures nothing: scrollHeight reads 0
+    // and the zero would stick as an inline height into the next open, leaving
+    // a field with no line to type on. Clicking the empty stage takes exactly
+    // that path, through pointAt(null). setOpen sizes it on the way in instead.
+    if (!open) return;
     input.style.height = "auto";
     input.style.height = `${Math.min(input.scrollHeight, INPUT_MAX_PX)}px`;
   }
@@ -164,7 +173,7 @@ export function mountChat(host: ChatHost): ChatHandle {
   function setBusy(on: boolean) {
     busy = on;
     input.disabled = on;
-    if (!on) input.focus();
+    if (!on && open) input.focus();
   }
 
   // ---------- a turn ----------
