@@ -236,7 +236,20 @@ svg.stage {
 #chat-log .them { color: var(--bone); }
 #chat-log .wait { color: rgba(233, 217, 180, 0.3); letter-spacing: 0.3em; }
 #chat-log .dark, #chat-log .empty { color: rgba(233, 217, 180, 0.42); font-style: italic; }
-#chat-log .empty code {
+
+/* A footnote, not a line of the conversation: it sits below the input for the
+   whole life of the panel, so it stays quieter than anything above it. */
+#mcp-note {
+  flex: none;
+  margin: 0;
+  padding: 7px 13px 8px;
+  border-top: 1px solid var(--hair);
+  color: rgba(233, 217, 180, 0.42);
+  font-size: 12px;
+  line-height: 1.4;
+  font-style: italic;
+}
+#mcp-note code {
   font: inherit;
   font-style: normal;
   color: var(--bone-dim);

@@ -121,7 +121,9 @@ export function mountChat(host: ChatHost): ChatHandle {
   // It pulses until the first click, ever — the state outlives the session.
   if (!readStore(localStorage, SEEN_KEY)) button.classList.add("pulse");
 
-  // The other way in: the same tools over MCP, at this origin.
+  // The other way in: the same tools over MCP, at this origin. The note lives
+  // under the input rather than in the transcript, so the first message does
+  // not carry it away with the empty line.
   const mcp = panel.querySelector<HTMLElement>("#mcp-url");
   if (mcp) mcp.textContent = `${location.origin}/mcp`;
 

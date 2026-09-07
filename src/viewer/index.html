@@ -42,13 +42,16 @@
 
   <section id="chat" role="dialog" aria-label="Chat" hidden>
     <div id="chat-log" role="log" aria-live="polite">
-      <p class="empty">Connect with MCP at <code id="mcp-url"></code> or type below.</p>
+      <p class="empty">Ask for a play, or a change to the one on stage.</p>
     </div>
     <form id="chat-form">
       <label class="vh" for="chat-input">Your message</label>
       <textarea id="chat-input" rows="1" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
       <button class="vh" type="submit">Send</button>
     </form>
+    <!-- The other way in, standing under the transcript rather than in it:
+         the same tools over MCP, on show for as long as the panel is open. -->
+    <p id="mcp-note">The same tools over MCP at <code id="mcp-url"></code></p>
   </section>
 
   <script type="module" src="/viewer.js"></script>

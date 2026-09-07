@@ -504,8 +504,9 @@ somewhere specific.
 
 One button in the lower corner — a pencil, no label. It pulses gently until
 first clicked, then never again; the state lives in `localStorage`. The panel
-opens on a single line, the MCP URL or type below, and closes on a click
-anywhere else. What the chat can do is discovered by using it. The chat
+opens on a single line inviting a request, and closes on a click anywhere
+else. The MCP URL stands under the input for as long as the panel is open, so
+the other way in is on show and not only in the empty state. What the chat can do is discovered by using it. The chat
 announces every commit to the page: another play takes the stage, the play
 already on stage replays from the top. One tool exists in the chat and not
 over MCP — `show_play`, which puts a play the visitor asked for on stage; it
