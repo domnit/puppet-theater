@@ -74,6 +74,15 @@ across the stage (\`y\` ≈ 0.5–0.6 puts feet on the floor for a standing figu
 \`facing\` is 1 or -1, \`plane\` is \`far|mid|near\` (depth: smaller and softer at
 the back). A puppet is off stage until its first keyframe.
 
+\`root.scale\` is the only thing that makes a puppet bigger or smaller on stage —
+at \`scale: 1\` every puppet is the same height, so a fox beside a keeper is fox-
+sized only because its poses say \`scale: 0.35\`. It carries forward like any
+other root field, so a track usually restates it, and setting it on one keyframe
+lasts only until the next keyframe that names it. To resize a puppet, nudge
+every keyframe that names \`scale\`, in every beat and every scene it appears in:
+\`{op: "nudge", sel: "b4:fox@*.root.scale", delta: 0.2}\`, one such edit per beat,
+in one batch. Read at \`depth: "key"\` first to see which keyframes carry it.
+
 Motion reads best when a puppet holds still and one thing moves; the engine adds
 breath, follow-through and pendulum swing on top of your keys, so a held pose is
 never dead. Parts with no rod cannot be moved on purpose while the puppet stands
@@ -98,8 +107,14 @@ attaches to its parent; \`+Y\` runs down the part's length and \`+X\` to its rig
 (screen coordinates, so +Y is down). Draw every part at canonical rest, extended
 along +Y — a leg hangs straight down, an arm too, a neck goes up as −Y. A child's
 \`pivot\` is a point in the parent's frame. All parts share the puppet's \`unit\`
-(its height; 100 is the convention), and the puppet's \`restPose\` holds rest
-angles per part, so bearing (hunched, proud) is a number, not a redraw.
+(its height in its own frame; 100 is the convention), and the puppet's
+\`restPose\` holds rest angles per part, so bearing (hunched, proud) is a number,
+not a redraw. \`unit\` is a drawing scale, not a size on stage: the renderer
+divides by it, so every puppet — fox, keeper, heron — stands the same height at
+\`root.scale: 1\`, and how big one is next to another is set only by \`root.scale\`
+in the poses (edit_scene). Raising \`unit\` makes a puppet *smaller* on stage, not
+bigger, because the drawing stays the same size in a taller frame; change it
+only to redraw a puppet at a finer or coarser grid, never to resize one.
 \`z\` orders parts front to back; \`mirrorOf\` reflects another part instead of
 drawing one (\`{id: "ear_r", parent: "head", pivot: [18,-10], mirrorOf: "ear_l"}\`);
 \`swing\` (0–1) makes a hanging prop a pendulum. A puppet needs one root part
